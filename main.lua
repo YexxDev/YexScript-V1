@@ -1,4 +1,4 @@
--- YexScript Hub - Thunder Z Style with Violet Transparent Theme and Features
+-- YexScript Hub - Thunder Z Style with Violet Transparent Theme, Toggle Features, and Smooth Loading
 
 local Players = game:GetService("Players")
 local UIS = game:GetService("UserInputService")
@@ -12,14 +12,38 @@ if game.CoreGui:FindFirstChild("YexScriptHub") then
     game.CoreGui.YexScriptHub:Destroy()
 end
 
+-- Loading Screen
+local loadGui = Instance.new("ScreenGui", game.CoreGui)
+loadGui.Name = "YexScriptLoading"
+local loadingFrame = Instance.new("Frame", loadGui)
+loadingFrame.Size = UDim2.new(0, 300, 0, 100)
+loadingFrame.Position = UDim2.new(0.5, -150, 0.5, -50)
+loadingFrame.BackgroundColor3 = Color3.fromRGB(90, 0, 140)
+loadingFrame.BackgroundTransparency = 0.3
+
+local loadingText = Instance.new("TextLabel", loadingFrame)
+loadingText.Size = UDim2.new(1, 0, 1, 0)
+loadingText.Text = ""
+loadingText.TextColor3 = Color3.new(1, 1, 1)
+loadingText.Font = Enum.Font.SourceSansBold
+loadingText.TextSize = 28
+
+for _, word in ipairs({"YEX", "SCRIPT"}) do
+    loadingText.Text = word
+    wait(1)
+end
+wait(0.5)
+loadGui:Destroy()
+
+-- Main GUI
 local gui = Instance.new("ScreenGui", game.CoreGui)
 gui.Name = "YexScriptHub"
 gui.ResetOnSpawn = false
 gui.IgnoreGuiInset = true
 
 local frame = Instance.new("Frame", gui)
-frame.Size = UDim2.new(0, 480, 0, 320)
-frame.Position = UDim2.new(0.5, -240, 0.5, -160)
+frame.Size = UDim2.new(0, 500, 0, 350)
+frame.Position = UDim2.new(0.5, -250, 0.5, -175)
 frame.BackgroundColor3 = Color3.fromRGB(100, 0, 150)
 frame.BackgroundTransparency = 0.3
 frame.BorderSizePixel = 0
@@ -95,110 +119,114 @@ UIS.InputBegan:Connect(function(input, gpe)
     end
 end)
 
--- Button function
-local function createButton(parent, text, posY, callback)
-    local btn = Instance.new("TextButton", parent)
-    btn.Size = UDim2.new(0, 200, 0, 30)
-    btn.Position = UDim2.new(0, 20, 0, posY)
-    btn.Text = text
-    btn.BackgroundColor3 = Color3.fromRGB(120, 0, 170)
-    btn.BackgroundTransparency = 0.3
-    btn.TextColor3 = Color3.new(1, 1, 1)
-    btn.Font = Enum.Font.SourceSansBold
-    btn.TextSize = 14
-    btn.MouseButton1Click:Connect(callback)
+-- Toggle function
+local function createToggle(parent, labelText, posY, callback)
+    local toggle = Instance.new("TextButton", parent)
+    toggle.Size = UDim2.new(0, 240, 0, 30)
+    toggle.Position = UDim2.new(0, 20, 0, posY)
+    toggle.BackgroundColor3 = Color3.fromRGB(120, 0, 170)
+    toggle.BackgroundTransparency = 0.3
+    toggle.TextColor3 = Color3.new(1, 1, 1)
+    toggle.Font = Enum.Font.SourceSansBold
+    toggle.TextSize = 14
+    toggle.Text = labelText .. " [OFF]"
+
+    local state = false
+    toggle.MouseButton1Click:Connect(function()
+        state = not state
+        toggle.Text = labelText .. (state and " [ON]" or " [OFF]")
+        callback(state)
+    end)
 end
 
--- Home Page
-createButton(home, "Copy Discord Invite", 20, function()
-    setclipboard("https://discord.gg/YexScript")
+-- Home Tab
+createToggle(home, "Copy Discord Invite", 20, function(on)
+    if on then
+        setclipboard("https://discord.gg/YexScript")
+    end
 end)
 
 -- Main Tab
-createButton(main, "Auto Plant Seed (Hold Seed)", 20, function()
+createToggle(main, "Auto Plant Seed (Hold Seed)", 20, function(on)
+    _G.autoPlant = on
     task.spawn(function()
-        while wait(0.5) do
+        while _G.autoPlant do
+            wait(0.5)
             local tool = LP.Character and LP.Character:FindFirstChildOfClass("Tool")
-            if tool then
-                mouse1click()
-            end
+            if tool then mouse1click() end
         end
     end)
 end)
 
-createButton(main, "Auto Watering Can", 60, function()
+createToggle(main, "Auto Watering Can", 60, function(on)
+    _G.autoWater = on
     task.spawn(function()
-        while wait(1) do
+        while _G.autoWater do
+            wait(1)
             local tool = LP.Character and LP.Character:FindFirstChildOfClass("Tool")
-            if tool and tool.Name:lower():find("water") then
-                mouse1click()
-            end
+            if tool and tool.Name:lower():find("water") then mouse1click() end
         end
     end)
 end)
 
-createButton(main, "Auto Harvester", 100, function()
+createToggle(main, "Auto Harvester", 100, function(on)
+    _G.autoHarvest = on
     task.spawn(function()
-        for _, v in pairs(workspace:GetDescendants()) do
-            if v:IsA("ProximityPrompt") and v.Name == "Harvest" then
-                fireproximityprompt(v)
+        while _G.autoHarvest do
+            for _, v in pairs(workspace:GetDescendants()) do
+                if v:IsA("ProximityPrompt") and v.Name == "Harvest" then
+                    fireproximityprompt(v)
+                end
             end
+            wait(2)
         end
     end)
 end)
 
 -- ESP Tab
-createButton(esp, "Show Best Fruit Value", 20, function()
-    for _, fruit in pairs(workspace:GetChildren()) do
-        if fruit:FindFirstChild("FruitTag") then
-            local tag = fruit.FruitTag
-            print("Fruit:", fruit.Name, "Weight:", tag:FindFirstChild("Weight") and tag.Weight.Value, "Price:", tag:FindFirstChild("Price") and tag.Price.Value)
+createToggle(esp, "Show Best Fruit Value", 20, function(on)
+    if on then
+        for _, fruit in pairs(workspace:GetChildren()) do
+            if fruit:FindFirstChild("FruitTag") then
+                local tag = fruit.FruitTag
+                print("Fruit:", fruit.Name, "Weight:", tag:FindFirstChild("Weight") and tag.Weight.Value, "Price:", tag:FindFirstChild("Price") and tag.Price.Value)
+            end
         end
     end
 end)
 
-createButton(esp, "Show My Pets In Garden", 60, function()
-    for _, v in pairs(workspace:GetDescendants()) do
-        if v:IsA("Model") and v.Name == LP.Name.."_Pet" then
-            print("Your Pet:", v.Name)
+createToggle(esp, "Show My Pets In Garden", 60, function(on)
+    if on then
+        for _, v in pairs(workspace:GetDescendants()) do
+            if v:IsA("Model") and v.Name == LP.Name.."_Pet" then
+                print("Your Pet:", v.Name)
+            end
         end
     end
 end)
 
 -- Teleport Tab
-createButton(teleport, "Summer Event NPC", 20, function()
-    LP.Character:MoveTo(Vector3.new(-35, 4, 295))
+createToggle(teleport, "Summer Event NPC", 20, function(on)
+    if on then LP.Character:MoveTo(Vector3.new(-35, 4, 295)) end
 end)
-createButton(teleport, "Gear Shop", 60, function()
-    LP.Character:MoveTo(Vector3.new(120, 3, -30))
+
+createToggle(teleport, "Gear Shop", 60, function(on)
+    if on then LP.Character:MoveTo(Vector3.new(120, 3, -30)) end
 end)
-createButton(teleport, "Honey Machine", 100, function()
-    LP.Character:MoveTo(Vector3.new(40, 3, 145))
+
+createToggle(teleport, "Honey Machine", 100, function(on)
+    if on then LP.Character:MoveTo(Vector3.new(40, 3, 145)) end
 end)
 
 -- Misc Tab
-createButton(misc, "Enable Fly", 20, function()
-    loadstring(game:HttpGet("https://pastebin.com/raw/YFL1bX1v"))()
+createToggle(misc, "Enable Fly", 20, function(on)
+    if on then loadstring(game:HttpGet("https://pastebin.com/raw/YFL1bX1v"))() end
 end)
 
-createButton(misc, "WalkSpeed x2", 60, function()
-    LP.Character.Humanoid.WalkSpeed = 32
+createToggle(misc, "WalkSpeed x2", 60, function(on)
+    if on and LP.Character then
+        LP.Character.Humanoid.WalkSpeed = 32
+    elseif LP.Character then
+        LP.Character.Humanoid.WalkSpeed = 16
+    end
 end)
-
--- Loading Screen
-local loadGui = Instance.new("ScreenGui", game.CoreGui)
-loadGui.Name = "YexScriptLoading"
-local loadingFrame = Instance.new("Frame", loadGui)
-loadingFrame.Size = UDim2.new(0, 300, 0, 100)
-loadingFrame.Position = UDim2.new(0.5, -150, 0.5, -50)
-loadingFrame.BackgroundColor3 = Color3.fromRGB(90, 0, 140)
-loadingFrame.BackgroundTransparency = 0.2
-
-local loadingText = Instance.new("TextLabel", loadingFrame)
-loadingText.Size = UDim2.new(1, 0, 1, 0)
-loadingText.Text = "Loading YEXSCRIPT..."
-loadingText.TextColor3 = Color3.new(1, 1, 1)
-loadingText.Font = Enum.Font.SourceSansBold
-loadingText.TextSize = 24
-wait(2)
-loadGui:Destroy()
