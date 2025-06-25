@@ -1,388 +1,458 @@
--- YexScript Hub - Final Version
--- Optimized for Grow a Garden, Mobile & PC, with full GUI & loading screen
+local player = game.Players.LocalPlayer
+local playerGui = player:WaitForChild("PlayerGui")
 
---// SERVICES
-local Players = game:GetService("Players")
-local TweenService = game:GetService("TweenService")
-local UserInputService = game:GetService("UserInputService")
-local RunService = game:GetService("RunService")
+-- Destroy any old version
+if playerGui:FindFirstChild("YEX_LoadingScreen") then
+	playerGui:FindFirstChild("YEX_LoadingScreen"):Destroy()
+end
 
-local plr = Players.LocalPlayer
-local PlayerGui = plr:WaitForChild("PlayerGui")
+-- Create loading GUI
+local loadingGui = Instance.new("ScreenGui")
+loadingGui.Name = "YEX_LoadingScreen"
+loadingGui.IgnoreGuiInset = true
+loadingGui.ResetOnSpawn = false
+loadingGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+loadingGui.Parent = playerGui
 
---// SCREEN GUI
-local gui = Instance.new("ScreenGui", PlayerGui)
-gui.Name = "YexScriptHub"
+-- Background
+local bg = Instance.new("Frame")
+bg.Size = UDim2.new(1, 0, 1, 0)
+bg.Position = UDim2.new(0, 0, 0, 0)
+bg.BackgroundColor3 = Color3.fromRGB(100, 60, 160)
+bg.BackgroundTransparency = 0.3
+bg.BorderSizePixel = 0
+bg.Parent = loadingGui
+
+-- Label text
+local label = Instance.new("TextLabel")
+label.AnchorPoint = Vector2.new(0.5, 0.5)
+label.Position = UDim2.new(0.5, 0, 0.5, 0)
+label.Size = UDim2.new(0, 300, 0, 100)
+label.BackgroundTransparency = 1
+label.Text = ""
+label.TextColor3 = Color3.fromRGB(255, 255, 255)
+label.TextStrokeTransparency = 0.8
+label.Font = Enum.Font.GothamBlack
+label.TextSize = 40
+label.Parent = bg
+
+-- Animation Sequence
+local function animateText(text, delayPerChar)
+	for i = 1, #text do
+		label.Text = string.sub(text, 1, i)
+		wait(delayPerChar)
+	end
+end
+
+-- Play animation
+task.spawn(function()
+	animateText("YEX", 0.2)
+	wait(1)
+	animateText("YEXSCRIPT", 0.15)
+	wait(1)
+
+	-- Fade out and destroy
+	for i = 0, 1, 0.05 do
+		bg.BackgroundTransparency = 0.3 + i * 0.7
+		label.TextTransparency = i
+		label.TextStrokeTransparency = i
+		wait(0.03)
+	end
+	loadingGui:Destroy()
+end)
+
+local player = game.Players.LocalPlayer
+local playerGui = player:WaitForChild("PlayerGui")
+
+-- Destroy old UI if exists
+if playerGui:FindFirstChild("YEX_UI") then
+	playerGui:FindFirstChild("YEX_UI"):Destroy()
+end
+
+-- Create main GUI
+local gui = Instance.new("ScreenGui", playerGui)
+gui.Name = "YEX_UI"
 gui.ResetOnSpawn = false
-gui.IgnoreGuiInset = true
 gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 
---// LOADING BACKGROUND
-local loadingBG = Instance.new("Frame", gui)
-loadingBG.Size = UDim2.new(1, 0, 1, 0)
-loadingBG.BackgroundColor3 = Color3.fromRGB(128, 90, 213)
-loadingBG.BackgroundTransparency = 0.3
+-- Toggle Button
+local toggle = Instance.new("TextButton", gui)
+toggle.Size = UDim2.new(0, 100, 0, 30)
+toggle.Position = UDim2.new(0, 10, 0.2, 0)
+toggle.Text = "YEXSCRIPT"
+toggle.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
+toggle.BackgroundTransparency = 0.3
+toggle.TextColor3 = Color3.new(1, 1, 1)
+toggle.Font = Enum.Font.GothamBold
+toggle.TextSize = 14
+toggle.AutoButtonColor = true
 
---// TEXT YEX
-local yexText = Instance.new("TextLabel", loadingBG)
-yexText.Size = UDim2.new(0, 200, 0, 50)
-yexText.Position = UDim2.new(0.5, -100, 0.45, -60)
-yexText.BackgroundTransparency = 1
-yexText.Text = ""
-yexText.TextColor3 = Color3.new(1, 1, 1)
-yexText.Font = Enum.Font.GothamBlack
-yexText.TextSize = 36
-
---// TEXT SCRIPT
-local scriptText = Instance.new("TextLabel", loadingBG)
-scriptText.Size = UDim2.new(0, 200, 0, 50)
-scriptText.Position = UDim2.new(0.5, -100, 0.5, 0)
-scriptText.BackgroundTransparency = 1
-scriptText.Text = ""
-scriptText.TextColor3 = Color3.new(1, 1, 1)
-scriptText.Font = Enum.Font.GothamBlack
-scriptText.TextSize = 36
-
---// ANIMATION FUNCTION
-local function animateLoading()
-    wait(1)
-    yexText.Text = "YEX"
-    TweenService:Create(yexText, TweenInfo.new(0.6), {TextTransparency = 0}):Play()
-    wait(1)
-    scriptText.Text = "SCRIPT"
-    TweenService:Create(scriptText, TweenInfo.new(0.6), {TextTransparency = 0}):Play()
-    wait(1.5)
-    loadingBG:Destroy()
-end
-
-animateLoading()
--- GUI Container Frame
+-- Main Frame
 local mainFrame = Instance.new("Frame", gui)
-mainFrame.Name = "MainUI"
-mainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-mainFrame.BackgroundTransparency = 0.1
-mainFrame.BorderSizePixel = 0
-mainFrame.Position = UDim2.new(0.3, 0, 0.2, 0)
-mainFrame.Size = UDim2.new(0, 400, 0, 300)
+mainFrame.Name = "MainFrame"
 mainFrame.Visible = false
+mainFrame.Size = UDim2.new(0, 420, 0, 300)
+mainFrame.Position = UDim2.new(0.5, -210, 0.5, -150)
+mainFrame.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+mainFrame.BackgroundTransparency = 0.25
+mainFrame.BorderSizePixel = 0
+mainFrame.ClipsDescendants = true
+mainFrame.AnchorPoint = Vector2.new(0.5, 0.5)
 
--- Tabs Bar
-local tabList = {"Home", "Main", "ESP", "Teleport", "Misc"}
-local tabButtons = {}
+-- Make frame draggable
+local UIS = game:GetService("UserInputService")
+local dragging, dragInput, dragStart, startPos
+mainFrame.InputBegan:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+		dragging = true
+		dragStart = input.Position
+		startPos = mainFrame.Position
+		input.Changed:Connect(function()
+			if input.UserInputState == Enum.UserInputState.End then dragging = false end
+		end)
+	end
+end)
+
+UIS.InputChanged:Connect(function(input)
+	if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+		local delta = input.Position - dragStart
+		mainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+	end
+end)
+
+-- Tab Buttons
+local tabBar = Instance.new("Frame", mainFrame)
+tabBar.Size = UDim2.new(0, 420, 0, 35)
+tabBar.Position = UDim2.new(0, 0, 0, 0)
+tabBar.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+tabBar.BorderSizePixel = 0
+
+local tabs = {"Home", "Main", "ESP", "Teleport", "Shop", "Misc"}
 local pages = {}
 
-local tabFrame = Instance.new("Frame", mainFrame)
-tabFrame.Size = UDim2.new(1, 0, 0, 35)
-tabFrame.Position = UDim2.new(0, 0, 0, 0)
-tabFrame.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+for i, tabName in ipairs(tabs) do
+	local tabBtn = Instance.new("TextButton", tabBar)
+	tabBtn.Size = UDim2.new(0, 70, 1, 0)
+	tabBtn.Position = UDim2.new(0, (i - 1) * 70, 0, 0)
+	tabBtn.Text = tabName
+	tabBtn.BackgroundColor3 = Color3.fromRGB(90, 90, 90)
+	tabBtn.TextColor3 = Color3.new(1, 1, 1)
+	tabBtn.Font = Enum.Font.GothamBold
+	tabBtn.TextSize = 12
+	tabBtn.AutoButtonColor = true
 
-for i, tabName in ipairs(tabList) do
-    local btn = Instance.new("TextButton", tabFrame)
-    btn.Size = UDim2.new(0, 80, 1, 0)
-    btn.Position = UDim2.new(0, (i - 1) * 80, 0, 0)
-    btn.Text = tabName
-    btn.Name = tabName
-    btn.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
-    btn.TextColor3 = Color3.new(1, 1, 1)
-    btn.BorderSizePixel = 0
-    btn.Font = Enum.Font.GothamBold
-    btn.TextSize = 14
-    tabButtons[tabName] = btn
+	local page = Instance.new("Frame", mainFrame)
+	page.Size = UDim2.new(1, 0, 1, -35)
+	page.Position = UDim2.new(0, 0, 0, 35)
+	page.BackgroundTransparency = 1
+	page.Visible = (i == 1)
+	pages[tabName] = page
+
+	tabBtn.MouseButton1Click:Connect(function()
+		for _, p in pairs(pages) do p.Visible = false end
+		page.Visible = true
+	end)
 end
 
--- Page Templates
-for _, tabName in ipairs(tabList) do
-    local page = Instance.new("ScrollingFrame", mainFrame)
-    page.Name = tabName .. "Page"
-    page.Size = UDim2.new(1, 0, 1, -35)
-    page.Position = UDim2.new(0, 0, 0, 35)
-    page.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-    page.BorderSizePixel = 0
-    page.Visible = false
-    page.CanvasSize = UDim2.new(0, 0, 2, 0)
-    pages[tabName] = page
-end
-
--- Show Home page by default
-pages["Home"].Visible = true
-mainFrame.Visible = true
-
--- Tab button logic
-for name, btn in pairs(tabButtons) do
-    btn.MouseButton1Click:Connect(function()
-        for _, p in pairs(pages) do p.Visible = false end
-        pages[name].Visible = true
-    end)
-end
-
--- Toggle GUI with "Y"
-UserInputService.InputBegan:Connect(function(input, gp)
-    if input.KeyCode == Enum.KeyCode.Y then
-        mainFrame.Visible = not mainFrame.Visible
-    end
+-- Toggle visibility
+toggle.MouseButton1Click:Connect(function()
+	mainFrame.Visible = not mainFrame.Visible
 end)
--- Shortcut to Main Page
-local mainPage = pages["Main"]
 
--- Auto Plant Seed
+local MainTab = pages["Main"]
+local UIS = game:GetService("UserInputService")
+
+-- Title
+local title = Instance.new("TextLabel", MainTab)
+title.Text = "Main Features"
+title.Size = UDim2.new(1, 0, 0, 25)
+title.Position = UDim2.new(0, 0, 0, 0)
+title.BackgroundTransparency = 1
+title.TextColor3 = Color3.new(1, 1, 1)
+title.Font = Enum.Font.GothamBold
+title.TextSize = 16
+
+-- Auto Plant Seed Toggle
 local autoPlant = false
-local autoPlantBtn = Instance.new("TextButton", mainPage)
-autoPlantBtn.Size = UDim2.new(0, 200, 0, 30)
-autoPlantBtn.Position = UDim2.new(0, 10, 0, 10)
-autoPlantBtn.Text = "Auto Plant: OFF"
-autoPlantBtn.BackgroundColor3 = Color3.fromRGB(90, 60, 120)
+local autoPlantBtn = Instance.new("TextButton", MainTab)
+autoPlantBtn.Size = UDim2.new(0, 180, 0, 30)
+autoPlantBtn.Position = UDim2.new(0, 10, 0, 35)
+autoPlantBtn.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
 autoPlantBtn.TextColor3 = Color3.new(1, 1, 1)
 autoPlantBtn.Font = Enum.Font.Gotham
 autoPlantBtn.TextSize = 14
+autoPlantBtn.Text = "Auto Plant Seed: OFF"
 
 autoPlantBtn.MouseButton1Click:Connect(function()
-    autoPlant = not autoPlant
-    autoPlantBtn.Text = "Auto Plant: " .. (autoPlant and "ON" or "OFF")
+	autoPlant = not autoPlant
+	autoPlantBtn.Text = "Auto Plant Seed: " .. (autoPlant and "ON" or "OFF")
 end)
 
+-- Planting Logic
 task.spawn(function()
-    while true do
-        if autoPlant then
-            local char = plr.Character
-            if char then
-                local tool = char:FindFirstChildOfClass("Tool")
-                if tool and tool.Name:lower():find("seed") then
-                    mouse1click()
-                end
-            end
-        end
-        task.wait(0.3)
-    end
+	while true do
+		if autoPlant and game:GetService("Players").LocalPlayer.Character then
+			local tool = game.Players.LocalPlayer.Character:FindFirstChildOfClass("Tool")
+			if tool and tool.Name:lower():find("seed") then
+				mouse = game.Players.LocalPlayer:GetMouse()
+				mouse1click()
+			end
+		end
+		wait(0.25)
+	end
 end)
 
--- Auto Watering Can
+-- Auto Water Toggle
 local autoWater = false
-local autoWaterBtn = Instance.new("TextButton", mainPage)
-autoWaterBtn.Size = UDim2.new(0, 200, 0, 30)
-autoWaterBtn.Position = UDim2.new(0, 10, 0, 50)
-autoWaterBtn.Text = "Auto Water: OFF"
-autoWaterBtn.BackgroundColor3 = Color3.fromRGB(90, 60, 120)
-autoWaterBtn.TextColor3 = Color3.new(1, 1, 1)
-autoWaterBtn.Font = Enum.Font.Gotham
-autoWaterBtn.TextSize = 14
+local waterBtn = Instance.new("TextButton", MainTab)
+waterBtn.Size = UDim2.new(0, 180, 0, 30)
+waterBtn.Position = UDim2.new(0, 10, 0, 75)
+waterBtn.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
+waterBtn.TextColor3 = Color3.new(1, 1, 1)
+waterBtn.Font = Enum.Font.Gotham
+waterBtn.TextSize = 14
+waterBtn.Text = "Auto Watering Can: OFF"
 
-autoWaterBtn.MouseButton1Click:Connect(function()
-    autoWater = not autoWater
-    autoWaterBtn.Text = "Auto Water: " .. (autoWater and "ON" or "OFF")
+waterBtn.MouseButton1Click:Connect(function()
+	autoWater = not autoWater
+	waterBtn.Text = "Auto Watering Can: " .. (autoWater and "ON" or "OFF")
 end)
 
 task.spawn(function()
-    while true do
-        if autoWater then
-            local char = plr.Character
-            if char then
-                local tool = char:FindFirstChildOfClass("Tool")
-                if tool and tool.Name:lower():find("watering") then
-                    mouse1click()
-                end
-            end
-        end
-        task.wait(0.2)
-    end
+	while true do
+		if autoWater and game:GetService("Players").LocalPlayer.Character then
+			local tool = game.Players.LocalPlayer.Character:FindFirstChildOfClass("Tool")
+			if tool and tool.Name:lower():find("watering") then
+				mouse1click()
+			end
+		end
+		wait(0.15)
+	end
 end)
 
--- Auto Collect Crops
-local autoCollect = false
-local collectBtn = Instance.new("TextButton", mainPage)
-collectBtn.Size = UDim2.new(0, 200, 0, 30)
-collectBtn.Position = UDim2.new(0, 10, 0, 90)
-collectBtn.Text = "Auto Collect: OFF"
-collectBtn.BackgroundColor3 = Color3.fromRGB(90, 60, 120)
+-- Auto Collect
+local collectOn = false
+local collectBtn = Instance.new("TextButton", MainTab)
+collectBtn.Size = UDim2.new(0, 180, 0, 30)
+collectBtn.Position = UDim2.new(0, 10, 0, 115)
+collectBtn.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
 collectBtn.TextColor3 = Color3.new(1, 1, 1)
 collectBtn.Font = Enum.Font.Gotham
 collectBtn.TextSize = 14
+collectBtn.Text = "Auto Collect Crops: OFF"
 
 collectBtn.MouseButton1Click:Connect(function()
-    autoCollect = not autoCollect
-    collectBtn.Text = "Auto Collect: " .. (autoCollect and "ON" or "OFF")
+	collectOn = not collectOn
+	collectBtn.Text = "Auto Collect Crops: " .. (collectOn and "ON" or "OFF")
 end)
 
 task.spawn(function()
-    while true do
-        if autoCollect then
-            for _, v in pairs(workspace:GetDescendants()) do
-                if v:IsA("ClickDetector") and v.Parent:FindFirstChild("Name") and tostring(v.Parent.Name):lower():find("fruit") then
-                    fireclickdetector(v)
-                end
-            end
-        end
-        task.wait(1)
-    end
-end)
--- ESP TAB
-local espPage = pages["ESP"]
-
--- Best Fruit ESP (visual-only)
-local fruitEspBtn = Instance.new("TextButton", espPage)
-fruitEspBtn.Size = UDim2.new(0, 250, 0, 30)
-fruitEspBtn.Position = UDim2.new(0, 10, 0, 10)
-fruitEspBtn.Text = "Show Best Fruit (Visual)"
-fruitEspBtn.BackgroundColor3 = Color3.fromRGB(60, 40, 90)
-fruitEspBtn.TextColor3 = Color3.new(1, 1, 1)
-fruitEspBtn.Font = Enum.Font.Gotham
-fruitEspBtn.TextSize = 14
-
-fruitEspBtn.MouseButton1Click:Connect(function()
-    for _, obj in pairs(workspace:GetDescendants()) do
-        if obj:IsA("Model") and obj.Name:lower():find("fruit") and obj:FindFirstChild("BillboardGui") == nil then
-            local gui = Instance.new("BillboardGui", obj)
-            gui.Size = UDim2.new(0, 100, 0, 30)
-            gui.AlwaysOnTop = true
-            gui.Adornee = obj:FindFirstChild("PrimaryPart") or obj:FindFirstChildWhichIsA("BasePart")
-            local label = Instance.new("TextLabel", gui)
-            label.Size = UDim2.new(1, 0, 1, 0)
-            label.BackgroundTransparency = 1
-            label.TextColor3 = Color3.new(1, 1, 0)
-            label.TextStrokeTransparency = 0
-            label.Font = Enum.Font.GothamBold
-            label.TextScaled = true
-            label.Text = "[Fruit] Value: "..tostring(math.random(100, 999))
-        end
-    end
+	while true do
+		if collectOn then
+			for _, v in pairs(workspace:GetDescendants()) do
+				if v:IsA("TouchTransmitter") and v.Parent and v.Parent:FindFirstChild("Value") then
+					firetouchinterest(game.Players.LocalPlayer.Character.HumanoidRootPart, v.Parent, 0)
+					wait()
+					firetouchinterest(game.Players.LocalPlayer.Character.HumanoidRootPart, v.Parent, 1)
+				end
+			end
+		end
+		wait(1)
+	end
 end)
 
--- Show Pet ESP
-local petEspBtn = Instance.new("TextButton", espPage)
-petEspBtn.Size = UDim2.new(0, 250, 0, 30)
-petEspBtn.Position = UDim2.new(0, 10, 0, 50)
-petEspBtn.Text = "Show My Pets (Visual)"
-petEspBtn.BackgroundColor3 = Color3.fromRGB(60, 40, 90)
-petEspBtn.TextColor3 = Color3.new(1, 1, 1)
-petEspBtn.Font = Enum.Font.Gotham
-petEspBtn.TextSize = 14
+local espTab = pages["ESP"]
 
-petEspBtn.MouseButton1Click:Connect(function()
-    for _, pet in pairs(workspace:GetDescendants()) do
-        if pet:IsA("Model") and pet.Name == plr.Name.."'s Pet" then
-            local tag = Instance.new("BillboardGui", pet)
-            tag.Size = UDim2.new(0, 100, 0, 30)
-            tag.AlwaysOnTop = true
-            tag.Adornee = pet:FindFirstChildWhichIsA("BasePart")
-            local label = Instance.new("TextLabel", tag)
-            label.Size = UDim2.new(1, 0, 1, 0)
-            label.BackgroundTransparency = 1
-            label.TextColor3 = Color3.new(0, 1, 1)
-            label.Text = "🐾 MY PET"
-            label.Font = Enum.Font.GothamBold
-            label.TextScaled = true
-        end
-    end
+-- Title
+local title = Instance.new("TextLabel", espTab)
+title.Text = "ESP Features"
+title.Size = UDim2.new(1, 0, 0, 25)
+title.Position = UDim2.new(0, 0, 0, 0)
+title.BackgroundTransparency = 1
+title.TextColor3 = Color3.new(1, 1, 1)
+title.Font = Enum.Font.GothamBold
+title.TextSize = 16
+
+-- Best Fruit ESP Toggle
+local showFruitESP = false
+local fruitBtn = Instance.new("TextButton", espTab)
+fruitBtn.Size = UDim2.new(0, 180, 0, 30)
+fruitBtn.Position = UDim2.new(0, 10, 0, 35)
+fruitBtn.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
+fruitBtn.TextColor3 = Color3.new(1, 1, 1)
+fruitBtn.Font = Enum.Font.Gotham
+fruitBtn.TextSize = 14
+fruitBtn.Text = "Show Best Fruit Value: OFF"
+
+fruitBtn.MouseButton1Click:Connect(function()
+	showFruitESP = not showFruitESP
+	fruitBtn.Text = "Show Best Fruit Value: " .. (showFruitESP and "ON" or "OFF")
 end)
 
--- TELEPORT TAB
-local tpPage = pages["Teleport"]
+-- Pet ESP Toggle
+local petESP = false
+local petBtn = Instance.new("TextButton", espTab)
+petBtn.Size = UDim2.new(0, 180, 0, 30)
+petBtn.Position = UDim2.new(0, 10, 0, 75)
+petBtn.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
+petBtn.TextColor3 = Color3.new(1, 1, 1)
+petBtn.Font = Enum.Font.Gotham
+petBtn.TextSize = 14
+petBtn.Text = "Pet ESP: OFF"
 
-local locations = {
-    ["Gear Shop"] = Vector3.new(-50, 5, 120),
-    ["Summer Event NPC"] = Vector3.new(85, 3, -220),
-    ["Egg Shop"] = Vector3.new(15, 4, 75),
-    ["Honey Machine"] = Vector3.new(-120, 3, -40),
-}
-
-local y = 10
-for name, pos in pairs(locations) do
-    local tpBtn = Instance.new("TextButton", tpPage)
-    tpBtn.Size = UDim2.new(0, 240, 0, 30)
-    tpBtn.Position = UDim2.new(0, 10, 0, y)
-    tpBtn.Text = "Teleport to " .. name
-    tpBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 120)
-    tpBtn.TextColor3 = Color3.new(1, 1, 1)
-    tpBtn.Font = Enum.Font.Gotham
-    tpBtn.TextSize = 14
-    y += 40
-
-    tpBtn.MouseButton1Click:Connect(function()
-        local char = plr.Character
-        if char and char:FindFirstChild("HumanoidRootPart") then
-            char.HumanoidRootPart.CFrame = CFrame.new(pos + Vector3.new(0, 5, 0))
-        end
-    end)
-end
--- MISC TAB
-local miscPage = pages["Misc"]
-
--- Walkspeed
-local wsSlider = Instance.new("TextButton", miscPage)
-wsSlider.Size = UDim2.new(0, 200, 0, 30)
-wsSlider.Position = UDim2.new(0, 10, 0, 10)
-wsSlider.Text = "Walkspeed: 16"
-wsSlider.BackgroundColor3 = Color3.fromRGB(90, 60, 120)
-wsSlider.TextColor3 = Color3.new(1, 1, 1)
-wsSlider.Font = Enum.Font.Gotham
-wsSlider.TextSize = 14
-
-local wsValue = 16
-wsSlider.MouseButton1Click:Connect(function()
-    wsValue = wsValue + 4
-    if wsValue > 80 then wsValue = 16 end
-    wsSlider.Text = "Walkspeed: " .. wsValue
-    if plr.Character and plr.Character:FindFirstChildOfClass("Humanoid") then
-        plr.Character:FindFirstChildOfClass("Humanoid").WalkSpeed = wsValue
-    end
+petBtn.MouseButton1Click:Connect(function()
+	petESP = not petESP
+	petBtn.Text = "Pet ESP: " .. (petESP and "ON" or "OFF")
 end)
 
--- Fly toggle
-local flying = false
-local flyBtn = Instance.new("TextButton", miscPage)
-flyBtn.Size = UDim2.new(0, 200, 0, 30)
-flyBtn.Position = UDim2.new(0, 10, 0, 50)
-flyBtn.Text = "Fly: OFF"
-flyBtn.BackgroundColor3 = Color3.fromRGB(90, 60, 120)
-flyBtn.TextColor3 = Color3.new(1, 1, 1)
-flyBtn.Font = Enum.Font.Gotham
-flyBtn.TextSize = 14
+-- Fruit ESP Logic
+task.spawn(function()
+	while true do
+		if showFruitESP then
+			for _, v in pairs(workspace:GetChildren()) do
+				if v:IsA("Model") and v:FindFirstChild("Owner") and v.Owner.Value == game.Players.LocalPlayer.Name then
+					if v:FindFirstChild("Name") and not v:FindFirstChild("YEX_FRUIT_ESP") then
+						local tag = Instance.new("BillboardGui", v)
+						tag.Name = "YEX_FRUIT_ESP"
+						tag.Size = UDim2.new(0, 200, 0, 50)
+						tag.Adornee = v:FindFirstChild("Name") or v.PrimaryPart
+						tag.AlwaysOnTop = true
 
-local UIS = game:GetService("UserInputService")
-local flyingSpeed = 60
-local vel = Instance.new("BodyVelocity")
-vel.MaxForce = Vector3.new(9e9, 9e9, 9e9)
-
-flyBtn.MouseButton1Click:Connect(function()
-    flying = not flying
-    flyBtn.Text = "Fly: " .. (flying and "ON" or "OFF")
-
-    if flying then
-        local hrp = plr.Character and plr.Character:FindFirstChild("HumanoidRootPart")
-        if hrp then
-            vel.Parent = hrp
-            task.spawn(function()
-                while flying do
-                    local move = Vector3.zero
-                    if UIS:IsKeyDown(Enum.KeyCode.W) then move += Vector3.new(0, 0, -1) end
-                    if UIS:IsKeyDown(Enum.KeyCode.S) then move += Vector3.new(0, 0, 1) end
-                    if UIS:IsKeyDown(Enum.KeyCode.A) then move += Vector3.new(-1, 0, 0) end
-                    if UIS:IsKeyDown(Enum.KeyCode.D) then move += Vector3.new(1, 0, 0) end
-                    if UIS:IsKeyDown(Enum.KeyCode.Space) then move += Vector3.new(0, 1, 0) end
-                    if UIS:IsKeyDown(Enum.KeyCode.LeftControl) then move += Vector3.new(0, -1, 0) end
-
-                    vel.Velocity = hrp.CFrame:VectorToWorldSpace(move.Unit) * flyingSpeed
-                    task.wait()
-                end
-                vel.Parent = nil
-            end)
-        end
-    else
-        vel.Parent = nil
-    end
+						local label = Instance.new("TextLabel", tag)
+						label.Size = UDim2.new(1, 0, 1, 0)
+						label.BackgroundTransparency = 1
+						label.TextColor3 = Color3.fromRGB(255, 200, 0)
+						label.Font = Enum.Font.GothamBold
+						label.TextScaled = true
+						label.Text = string.format("🍍 %s | %.1f | $%d",
+							v.Name,
+							v:FindFirstChild("Weight") and v.Weight.Value or 0,
+							v:FindFirstChild("Price") and v.Price.Value or 0
+						)
+					end
+				end
+			end
+		else
+			for _, v in pairs(workspace:GetDescendants()) do
+				if v:IsA("BillboardGui") and v.Name == "YEX_FRUIT_ESP" then
+					v:Destroy()
+				end
+			end
+		end
+		wait(1.5)
+	end
 end)
 
--- GUI Toggle Visibility Square
-local toggleBtn = Instance.new("TextButton", gui)
-toggleBtn.Size = UDim2.new(0, 90, 0, 30)
-toggleBtn.Position = UDim2.new(0.01, 0, 0.1, 0)
-toggleBtn.Text = "YEXSCRIPT HUB"
-toggleBtn.BackgroundColor3 = Color3.fromRGB(100, 50, 160)
-toggleBtn.TextColor3 = Color3.new(1, 1, 1)
-toggleBtn.Font = Enum.Font.GothamBold
-toggleBtn.TextSize = 14
-toggleBtn.TextWrapped = true
-toggleBtn.AutoButtonColor = true
+-- Pet ESP Logic
+task.spawn(function()
+	while true do
+		if petESP then
+			for _, pet in pairs(workspace:GetDescendants()) do
+				if pet:IsA("Model") and pet.Name:find("Pet") and pet:FindFirstChild("Owner") and pet.Owner.Value == game.Players.LocalPlayer.Name then
+					if not pet:FindFirstChild("YEX_PET_ESP") then
+						local tag = Instance.new("BillboardGui", pet)
+						tag.Name = "YEX_PET_ESP"
+						tag.Size = UDim2.new(0, 120, 0, 40)
+						tag.Adornee = pet.PrimaryPart or pet:FindFirstChildOfClass("Part")
+						tag.AlwaysOnTop = true
 
-toggleBtn.MouseButton1Click:Connect(function()
-    mainFrame.Visible = not mainFrame.Visible
+						local label = Instance.new("TextLabel", tag)
+						label.Size = UDim2.new(1, 0, 1, 0)
+						label.BackgroundTransparency = 1
+						label.TextColor3 = Color3.fromRGB(0, 255, 0)
+						label.Font = Enum.Font.GothamBold
+						label.TextScaled = true
+						label.Text = "🐾 " .. pet.Name
+					end
+				end
+			end
+		else
+			for _, v in pairs(workspace:GetDescendants()) do
+				if v:IsA("BillboardGui") and v.Name == "YEX_PET_ESP" then
+					v:Destroy()
+				end
+			end
+		end
+		wait(1.5)
+	end
+end)
+
+local shopTab = pages["Shop"]
+local HttpService = game:GetService("HttpService")
+local plr = game.Players.LocalPlayer
+
+-- Title
+local title = Instance.new("TextLabel", shopTab)
+title.Text = "Auto Shop"
+title.Size = UDim2.new(1, 0, 0, 25)
+title.Position = UDim2.new(0, 0, 0, 0)
+title.BackgroundTransparency = 1
+title.TextColor3 = Color3.new(1, 1, 1)
+title.Font = Enum.Font.GothamBold
+title.TextSize = 16
+
+-- Item Category Dropdown
+local categoryList = {"Seeds", "Gears", "Eggs"}
+local selectedCategory = "Seeds"
+
+local dropdownCategory = Instance.new("TextButton", shopTab)
+dropdownCategory.Text = "Category: Seeds"
+dropdownCategory.Size = UDim2.new(0, 180, 0, 30)
+dropdownCategory.Position = UDim2.new(0, 10, 0, 35)
+dropdownCategory.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
+dropdownCategory.TextColor3 = Color3.new(1, 1, 1)
+dropdownCategory.Font = Enum.Font.Gotham
+dropdownCategory.TextSize = 14
+
+dropdownCategory.MouseButton1Click:Connect(function()
+	local currentIndex = table.find(categoryList, selectedCategory) or 1
+	local nextIndex = currentIndex % #categoryList + 1
+	selectedCategory = categoryList[nextIndex]
+	dropdownCategory.Text = "Category: " .. selectedCategory
+end)
+
+-- Item Selection Input
+local selectedItem = Instance.new("TextBox", shopTab)
+selectedItem.PlaceholderText = "Type Item Name (e.g., Candy Blossom)"
+selectedItem.Size = UDim2.new(0, 180, 0, 30)
+selectedItem.Position = UDim2.new(0, 10, 0, 75)
+selectedItem.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+selectedItem.TextColor3 = Color3.new(1, 1, 1)
+selectedItem.Font = Enum.Font.Gotham
+selectedItem.TextSize = 13
+selectedItem.Text = ""
+
+-- Auto Buy Button
+local buyBtn = Instance.new("TextButton", shopTab)
+buyBtn.Text = "Auto Buy Item"
+buyBtn.Size = UDim2.new(0, 180, 0, 30)
+buyBtn.Position = UDim2.new(0, 10, 0, 115)
+buyBtn.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
+buyBtn.TextColor3 = Color3.new(1, 1, 1)
+buyBtn.Font = Enum.Font.Gotham
+buyBtn.TextSize = 14
+
+-- Buy Logic
+buyBtn.MouseButton1Click:Connect(function()
+	local item = selectedItem.Text
+	if item == "" then return end
+
+	local function findShopNPC()
+		for _, v in pairs(workspace:GetDescendants()) do
+			if v:IsA("Model") and v:FindFirstChild("ShopType") and v.ShopType.Value == selectedCategory then
+				return v
+			end
+		end
+	end
+
+	local shopNPC = findShopNPC()
+	if shopNPC then
+		local clickPart = shopNPC:FindFirstChild("ClickPart") or shopNPC:FindFirstChildWhichIsA("Part")
+		if clickPart then
+			fireclickdetector(clickPart:FindFirstChildOfClass("ClickDetector"))
+			wait(0.5)
+			game:GetService("ReplicatedStorage"):WaitForChild("RemoteEvents"):WaitForChild("BuyItem"):FireServer(item)
+			print("✅ Attempted to buy:", item)
+		end
+	end
 end)
