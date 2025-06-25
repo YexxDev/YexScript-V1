@@ -217,4 +217,4 @@ for i, name in ipairs(tabNames) do
     end)
 end
 
-Tabs.Home() -- Load Home tab by default
+ -- Load Home tab by default
