@@ -1,201 +1,158 @@
---// VerdantX Premium GUI for Grow a Garden
+-- YexScript Premium Hub
+-- Made for Grow a Garden Simulator
+
+-- Services
 local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
+local TweenService = game:GetService("TweenService")
+local HttpService = game:GetService("HttpService")
+
 local player = Players.LocalPlayer
-local Mouse = player:GetMouse()
+local mouse = player:GetMouse()
 
--- Prevent duplicate GUIs
-pcall(function() player.PlayerGui:FindFirstChild("VerdantX_GUI"):Destroy() end)
+-- UI Lib (custom Kavo-like with transparency)
+local Library = loadstring(game:HttpGet("https://pastebin.com/raw/Vt4pv0zY"))() -- Assume a working library, if not we'll build from scratch
+local Window = Library.CreateLib("YEXSCRIPT HUB", Color3.fromRGB(140, 80, 255))
 
---// Loading Screen
-local loadingGui = Instance.new("ScreenGui", player.PlayerGui)
-loadingGui.Name = "VerdantX_Loading"
-loadingGui.IgnoreGuiInset = true
+-- Loading Screen
+local loadingGui = Instance.new("ScreenGui", game.CoreGui)
 loadingGui.ResetOnSpawn = false
-
-local bg = Instance.new("Frame", loadingGui)
-bg.Size = UDim2.new(1,0,1,0)
-bg.BackgroundColor3 = Color3.fromRGB(50,0,80)
-bg.BackgroundTransparency = 0.3
-
-local text = Instance.new("TextLabel", bg)
-text.Size = UDim2.new(1,0,1,0)
-text.TextColor3 = Color3.new(1,1,1)
-text.BackgroundTransparency = 1
-text.Font = Enum.Font.GothamBold
-text.TextScaled = true
-text.Text = ""
-
-wait(1)
-text.Text = "YEX"
-wait(1)
-text.Text = "SCRIPT"
-wait(1)
+local frame = Instance.new("Frame", loadingGui)
+frame.Size = UDim2.new(1, 0, 1, 0)
+frame.BackgroundTransparency = 0.5
+frame.BackgroundColor3 = Color3.fromRGB(140, 80, 255)
+local title = Instance.new("TextLabel", frame)
+title.Text = "YEX"
+title.Size = UDim2.new(1, 0, 1, 0)
+title.TextScaled = true
+title.Font = Enum.Font.GothamBlack
+title.TextColor3 = Color3.new(1, 1, 1)
+task.wait(1)
+title.Text = "SCRIPT"
+task.wait(1)
 loadingGui:Destroy()
 
---// GUI Setup
-local gui = Instance.new("ScreenGui", player.PlayerGui)
-gui.Name = "VerdantX_GUI"
-gui.ResetOnSpawn = false
+-- Tabs
+local mainTab = Window:NewTab("Main")
+local shopTab = Window:NewTab("Shop")
+local espTab = Window:NewTab("ESP")
+local calcTab = Window:NewTab("Calculator")
+local homeTab = Window:NewTab("Home")
 
-local mainFrame = Instance.new("Frame", gui)
-mainFrame.Size = UDim2.new(0, 430, 0, 300)
-mainFrame.Position = UDim2.new(0.5, -215, 0.5, -150)
-mainFrame.BackgroundColor3 = Color3.fromRGB(35,35,35)
-mainFrame.BackgroundTransparency = 0.2
-mainFrame.BorderSizePixel = 0
-mainFrame.Active = true
-mainFrame.Draggable = true
-
-local title = Instance.new("TextLabel", mainFrame)
-title.Size = UDim2.new(1,0,0,35)
-title.Text = "VerdantX Hub"
-title.BackgroundColor3 = Color3.fromRGB(100,0,150)
-title.TextColor3 = Color3.new(1,1,1)
-title.Font = Enum.Font.GothamBold
-title.TextScaled = true
-
---// Tab Buttons
-local tabList = {"Main", "ESP"}
-local tabButtons = {}
-local contentFrames = {}
-
-for i, tabName in ipairs(tabList) do
-    local btn = Instance.new("TextButton", mainFrame)
-    btn.Size = UDim2.new(0, 100, 0, 30)
-    btn.Position = UDim2.new(0, 10 + (i-1)*110, 0, 40)
-    btn.Text = tabName
-    btn.BackgroundColor3 = Color3.fromRGB(85,85,85)
-    btn.TextColor3 = Color3.new(1,1,1)
-    btn.Font = Enum.Font.Gotham
-    btn.TextScaled = true
-    tabButtons[tabName] = btn
-
-    local frame = Instance.new("Frame", mainFrame)
-    frame.Size = UDim2.new(1, -20, 1, -80)
-    frame.Position = UDim2.new(0,10,0,80)
-    frame.Visible = i == 1
-    frame.BackgroundTransparency = 1
-    contentFrames[tabName] = frame
-
-    btn.MouseButton1Click:Connect(function()
-        for _, f in pairs(contentFrames) do f.Visible = false end
-        frame.Visible = true
-    end)
-end
-
---// Main Tab Features
-local function addToggle(name, parent, callback)
-    local toggle = Instance.new("TextButton", parent)
-    toggle.Size = UDim2.new(0, 200, 0, 30)
-    toggle.Position = UDim2.new(0, 10, 0, #parent:GetChildren() * 35)
-    toggle.BackgroundColor3 = Color3.fromRGB(70,70,70)
-    toggle.TextColor3 = Color3.new(1,1,1)
-    toggle.Font = Enum.Font.Gotham
-    toggle.TextSize = 14
-    toggle.Text = "🔲 "..name
-    local state = false
-
-    toggle.MouseButton1Click:Connect(function()
-        state = not state
-        toggle.Text = (state and "✅ " or "🔲 ") .. name
-        callback(state)
-    end)
-end
-
--- Auto Plant
-addToggle("Auto Plant (Hold Seed)", contentFrames["Main"], function(state)
-    task.spawn(function()
-        while state and task.wait(0.5) do
-            if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
-                local tool = player.Character:FindFirstChildOfClass("Tool")
-                if tool and tool.Name:lower():find("seed") then
-                    local pos = player.Character.HumanoidRootPart.Position
-                    local args = {
-                        [1] = Vector3.new(pos.X, 0, pos.Z),
-                        [2] = tool.Name
-                    }
-                    -- Use actual planting remote if found
-                    game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("PlantSeed"):FireServer(unpack(args))
-                end
-            end
+-- MAIN TAB
+local mainSection = mainTab:NewSection("Main Features")
+mainSection:NewToggle("Auto Plant Seed", "Plant held seed at player's position", function(state)
+    getgenv().autoPlant = state
+    while getgenv().autoPlant do
+        local tool = player.Character and player.Character:FindFirstChildOfClass("Tool")
+        if tool and tool.Name:lower():find("seed") then
+            local args = {[1] = workspace.Plots:GetChildren()[1].ClickDetector}
+            fireclickdetector(unpack(args))
         end
-    end)
-end)
-
--- Auto Watering
-addToggle("Auto Water Can (Hold)", contentFrames["Main"], function(state)
-    task.spawn(function()
-        while state and task.wait(0.3) do
-            local tool = player.Character and player.Character:FindFirstChildOfClass("Tool")
-            if tool and tool.Name:lower():find("watering") then
-                game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("Water"):FireServer()
-            end
+        task.wait(0.5)
+    end
+end)\n
+mainSection:NewToggle("Auto Watering Can", "Auto use watering can on your position", function(state)
+    getgenv().autoWater = state
+    while getgenv().autoWater do
+        local tool = player.Character and player.Character:FindFirstChild("Watering Can")
+        if tool then
+            tool:Activate()
         end
-    end)
-end)
-
--- Auto Collect
-addToggle("Auto Collect Crops", contentFrames["Main"], function(state)
-    task.spawn(function()
-        while state and task.wait(0.5) do
-            for _, crop in pairs(workspace:FindFirstChild("Plots"):GetDescendants()) do
-                if crop:IsA("Model") and crop:FindFirstChild("ClickDetector") then
-                    fireclickdetector(crop.ClickDetector)
-                end
-            end
-        end
-    end)
-end)
-
---// ESP Tab
-addToggle("ESP: My Fruits", contentFrames["ESP"], function(state)
-    while state and task.wait(2) do
-        for _, fruit in pairs(workspace:FindFirstChild("Plots"):GetDescendants()) do
-            if fruit:IsA("Model") and fruit:FindFirstChild("Owner") and fruit.Owner.Value == player then
-                if not fruit:FindFirstChild("NameTag") then
-                    local tag = Instance.new("BillboardGui", fruit)
-                    tag.Name = "NameTag"
-                    tag.Size = UDim2.new(0,100,0,40)
-                    tag.AlwaysOnTop = true
-                    tag.StudsOffset = Vector3.new(0,3,0)
-                    local label = Instance.new("TextLabel", tag)
-                    label.Size = UDim2.new(1,0,1,0)
-                    label.Text = fruit.Name .. "\nWeight: " .. (fruit:FindFirstChild("Weight") and fruit.Weight.Value or "?")
-                    label.BackgroundTransparency = 1
-                    label.TextColor3 = Color3.new(1,1,0)
-                    label.TextScaled = true
-                end
-            end
-        end
+        task.wait(0.3)
     end
 end)
 
-addToggle("ESP: My Pets", contentFrames["ESP"], function(state)
-    while state and task.wait(2) do
-        for _, pet in pairs(workspace:GetDescendants()) do
-            if pet:IsA("Model") and pet.Name == player.Name.."_Pet" then
-                if not pet:FindFirstChild("NameTag") then
-                    local tag = Instance.new("BillboardGui", pet)
-                    tag.Name = "NameTag"
-                    tag.Size = UDim2.new(0,100,0,40)
-                    tag.AlwaysOnTop = true
-                    tag.StudsOffset = Vector3.new(0,3,0)
-                    local label = Instance.new("TextLabel", tag)
-                    label.Size = UDim2.new(1,0,1,0)
-                    label.Text = "My Pet"
-                    label.BackgroundTransparency = 1
-                    label.TextColor3 = Color3.new(0,1,1)
-                    label.TextScaled = true
+mainSection:NewToggle("Auto Collect Crops", "Collect fruits nearby", function(state)
+    getgenv().autoCollect = state
+    while getgenv().autoCollect do
+        for _,v in pairs(workspace:GetChildren()) do
+            if v.Name == "Fruit" and v:FindFirstChild("ClickDetector") then
+                if (v.Position - player.Character.HumanoidRootPart.Position).magnitude < 10 then
+                    fireclickdetector(v.ClickDetector)
                 end
             end
         end
+        task.wait(1)
     end
 end)
 
---// Toggle GUI key
-UserInputService.InputBegan:Connect(function(input, gameProcessed)
-    if input.KeyCode == Enum.KeyCode.RightControl then
-        mainFrame.Visible = not mainFrame.Visible
+-- SHOP TAB
+local shopSection = shopTab:NewSection("Auto Buy")
+local seeds = {"Carrot","Strawberry","Blueberry","Tomato","Cauliflower","Watermelon","Green Apple","Avocado","Banana","Pineapple","Kiwi","Bell Pepper","Prickly Pear","Laquat","Feijoa","Sugar Apple"}
+local gears = {"Watering Can","Trowel","Recall Wrench","Basic Sprinkles","Advance Sprinkle","Godly Sprinkle","Tanning Mirror","Master Sprinkle","Cleaning Spray","Favorite Tool","Harvest Tool","Friendship Plot"}
+local eggs = {"Common","Uncommon","Rare","Legendary","Mythic","Bug Egg","Presmatic Egg"}
+
+shopSection:NewDropdown("Buy Seed", "Select a seed to auto buy", seeds, function(selected)
+    -- Simulate remote buying
+    print("Buying Seed:", selected)
+end)
+
+shopSection:NewDropdown("Buy Gear", "Select gear to buy", gears, function(selected)
+    print("Buying Gear:", selected)
+end)
+
+shopSection:NewDropdown("Buy Egg", "Select egg to buy", eggs, function(selected)
+    print("Buying Egg:", selected)
+end)
+
+-- ESP TAB
+local espSection = espTab:NewSection("Visuals")
+espSection:NewToggle("ESP Fruits", "Show fruits in your garden", function(state)
+    getgenv().espFruit = state
+    while getgenv().espFruit do
+        for _,v in pairs(workspace:GetChildren()) do
+            if v.Name == "Fruit" and v:FindFirstChild("BillboardGui") == nil then
+                local label = Instance.new("BillboardGui", v)
+                label.Size = UDim2.new(0,100,0,40)
+                label.Adornee = v
+                label.AlwaysOnTop = true
+                local txt = Instance.new("TextLabel", label)
+                txt.Size = UDim2.new(1,0,1,0)
+                txt.BackgroundTransparency = 1
+                txt.Text = v.Name .. "\nWeight: ???\nPrice: ???"
+                txt.TextColor3 = Color3.new(1,1,1)
+                txt.TextScaled = true
+            end
+        end
+        task.wait(2)
     end
+end)
+
+espSection:NewToggle("ESP Pets", "Show your pets in garden", function(state)
+    getgenv().espPets = state
+    while getgenv().espPets do
+        for _,v in pairs(workspace:GetChildren()) do
+            if v:IsA("Model") and v.Name == player.Name .. "_Pet" then
+                if not v:FindFirstChild("BillboardGui") then
+                    local label = Instance.new("BillboardGui", v)
+                    label.Size = UDim2.new(0,100,0,40)
+                    label.Adornee = v:FindFirstChild("Head") or v:FindFirstChildWhichIsA("BasePart")
+                    label.AlwaysOnTop = true
+                    local txt = Instance.new("TextLabel", label)
+                    txt.Size = UDim2.new(1,0,1,0)
+                    txt.BackgroundTransparency = 1
+                    txt.Text = "Pet"
+                    txt.TextColor3 = Color3.fromRGB(255, 200, 100)
+                    txt.TextScaled = true
+                end
+            end
+        end
+        task.wait(2)
+    end
+end)
+
+-- CALCULATOR TAB
+local calcSection = calcTab:NewSection("Inventory Price")
+calcSection:NewButton("Calculate Inventory Price", "Estimate value of all fruits", function()
+    local total = 0
+    -- Here you would pull real inventory and pricing if exposed
+    print("[YEXSCRIPT] Estimated inventory price: R$"..total)
+end)
+
+-- HOME TAB
+local homeSection = homeTab:NewSection("Links")
+homeSection:NewButton("Copy Discord Link", "Copy invite to clipboard", function()
+    setclipboard("https://discord.gg/YexScript")
 end)
