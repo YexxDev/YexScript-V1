@@ -1,6 +1,5 @@
--- YexScript Devil Fruit ESP + Server Hop + Auto Collect
+-- YexScript Devil Fruit ESP + Server Hop (Stable Fix)
 
--- 💥 Fruits to Detect:
 local fruitsToFind = {
     "Rocket", "Bomb", "Spike", "Rubber", "Light", "Ice", "Magma",
     "Shadow", "Mammoth", "Dragon", "Leopard", "Kitsune", "Yeti",
@@ -8,110 +7,109 @@ local fruitsToFind = {
     "Chop", "Spring", "Flame", "Sand"
 }
 
--- 🎬 Fancy loading animation
+-- Fancy loading
 local function showLoadingAnimation()
-    local word = "SERVERHOP"
-    local screenGui = Instance.new("ScreenGui", game.CoreGui)
-    screenGui.Name = "YexLoading"
+    local text = "SERVERHOP"
+    local gui = Instance.new("ScreenGui", game.CoreGui)
+    gui.Name = "YexLoading"
 
-    local frame = Instance.new("Frame", screenGui)
-    frame.AnchorPoint = Vector2.new(0.5, 0.5)
-    frame.Position = UDim2.new(0.5, 0, 0.5, 0)
-    frame.Size = UDim2.new(0, 260, 0, 60)
+    local frame = Instance.new("Frame", gui)
+    frame.Size = UDim2.new(0, 240, 0, 50)
+    frame.Position = UDim2.new(0.5, -120, 0.5, -25)
     frame.BackgroundColor3 = Color3.fromRGB(100, 0, 255)
     frame.BackgroundTransparency = 0.3
-    frame.BorderSizePixel = 0
 
-    local text = Instance.new("TextLabel", frame)
-    text.Size = UDim2.new(1, 0, 1, 0)
-    text.BackgroundTransparency = 1
-    text.TextColor3 = Color3.new(1, 1, 1)
-    text.Font = Enum.Font.GothamBold
-    text.TextScaled = true
+    local label = Instance.new("TextLabel", frame)
+    label.Size = UDim2.new(1, 0, 1, 0)
+    label.BackgroundTransparency = 1
+    label.TextColor3 = Color3.new(1, 1, 1)
+    label.Font = Enum.Font.GothamBold
+    label.TextScaled = true
 
-    for i = 1, #word do
-        text.Text = word:sub(1, i)
+    for i = 1, #text do
+        label.Text = text:sub(1, i)
         wait(0.5)
     end
 
-    screenGui:Destroy()
+    wait(0.5)
+    gui:Destroy()
 end
 
--- 🔎 ESP
+-- ESP
 local function fruitESP(fruit)
-    if fruit:FindFirstChild("ESP_Yex") then return end
+    if fruit:FindFirstChild("ESP_YEX") then return end
+    local handle = fruit:FindFirstChild("Handle")
+    if not handle then return end
 
     local gui = Instance.new("BillboardGui", fruit)
-    gui.Name = "ESP_Yex"
-    gui.Size = UDim2.new(0, 120, 0, 30)
+    gui.Name = "ESP_YEX"
+    gui.Size = UDim2.new(0, 100, 0, 30)
+    gui.Adornee = handle
     gui.AlwaysOnTop = true
-    gui.Adornee = fruit:FindFirstChild("Handle") or fruit
 
     local label = Instance.new("TextLabel", gui)
     label.Size = UDim2.new(1, 0, 1, 0)
-    label.Text = "🍇 " .. fruit.Name .. " 🍇"
+    label.Text = "🍇 " .. fruit.Name
     label.TextColor3 = Color3.fromRGB(255, 255, 0)
     label.BackgroundTransparency = 1
-    label.Font = Enum.Font.GothamBlack
     label.TextScaled = true
+    label.Font = Enum.Font.GothamBold
 end
 
--- 📦 Teleport player to fruit
+-- Teleport
 local function teleportToFruit(fruit)
-    local hrp = game.Players.LocalPlayer.Character and game.Players.LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
-    if hrp and fruit and fruit:IsA("Tool") then
-        hrp.CFrame = fruit.Handle.CFrame + Vector3.new(0, 5, 0)
+    local hrp = game.Players.LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+    local handle = fruit:FindFirstChild("Handle")
+    if hrp and handle then
+        hrp.CFrame = handle.CFrame + Vector3.new(0, 5, 0)
     end
 end
 
--- 🍉 Detect fruit in current server
+-- Detect Fruit
 local function findFruit()
-    for _, obj in pairs(workspace:GetDescendants()) do
-        if obj:IsA("Tool") and table.find(fruitsToFind, obj.Name) then
-            fruitESP(obj)
-            teleportToFruit(obj)
+    for _, item in ipairs(workspace:GetDescendants()) do
+        if item:IsA("Tool") and table.find(fruitsToFind, item.Name) then
+            fruitESP(item)
+            teleportToFruit(item)
             return true
         end
     end
     return false
 end
 
--- 🌍 Server hop
+-- Server Hop
 local function serverHop()
     local HttpService = game:GetService("HttpService")
     local TeleportService = game:GetService("TeleportService")
     local player = game.Players.LocalPlayer
 
-    local req = syn and syn.request or http and http.request or http_request or fluxus and fluxus.request or request
-    if not req then return warn("Executor does not support HTTP requests.") end
+    local request = (syn and syn.request) or (http and http.request) or http_request or (fluxus and fluxus.request) or request
+    if not request then
+        warn("❌ This executor does not support HTTP requests!")
+        return
+    end
 
-    local success, response = pcall(function()
-        return req({
+    local success, res = pcall(function()
+        return request({
             Url = "https://games.roblox.com/v1/games/" .. game.PlaceId .. "/servers/Public?sortOrder=Asc&limit=100"
         })
     end)
 
-    if success and response and response.Body then
-        local data = HttpService:JSONDecode(response.Body)
-        local servers = {}
+    if not success then return end
 
-        for _, v in pairs(data.data) do
-            if v.playing < v.maxPlayers and v.id ~= game.JobId then
-                table.insert(servers, v.id)
-            end
-        end
-
-        if #servers > 0 then
+    local data = HttpService:JSONDecode(res.Body)
+    for _, v in ipairs(data.data) do
+        if v.playing < v.maxPlayers and v.id ~= game.JobId then
             showLoadingAnimation()
-            TeleportService:TeleportToPlaceInstance(game.PlaceId, servers[math.random(1, #servers)], player)
+            TeleportService:TeleportToPlaceInstance(game.PlaceId, v.id, player)
+            break
         end
     end
 end
 
--- 🔁 Main Loop
+-- Main
 while task.wait(3) do
-    local found = findFruit()
-    if not found then
+    if not findFruit() then
         serverHop()
     else
         break
