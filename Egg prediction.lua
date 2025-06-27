@@ -1,62 +1,54 @@
---// SERVICES
+-- Load Official Rayfield UI
+local Rayfield = loadstring(game:HttpGet("https://raw.githubusercontent.com/shlexware/Rayfield/main/source.lua"))()
+
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 local TeleportService = game:GetService("TeleportService")
 local HttpService = game:GetService("HttpService")
+local Workspace = game:GetService("Workspace")
 
---// LOAD RAYFIELD UI LIBRARY (Safe)
-local RayfieldLibURL = "https://sirius.menu/rayfield/library.lua"
-local RayfieldSuccess, Rayfield = pcall(function()
-    return loadstring(game:HttpGet(RayfieldLibURL))()
-end)
-
-if not RayfieldSuccess or not Rayfield then
-    warn("Rayfield UI failed to load.")
-    return
-end
-
---// CREATE WINDOW
+-- Create the UI
 local Window = Rayfield:CreateWindow({
-    Name = "YexScript | Egg Prediction",
+    Name = "YexScript - Egg Predictor",
     LoadingTitle = "YEXSCRIPT",
-    LoadingSubtitle = "ServerHop & ESP",
+    LoadingSubtitle = "Egg Prediction + Server Hop",
     ConfigurationSaving = {
         Enabled = false
     }
 })
 
---// VARIABLES
 local desiredPet = "Dragonfly"
 local selectedEgg = "Bug Egg"
 
---// MAIN TAB
 local MainTab = Window:CreateTab("Main", 4483362458)
 
+-- Egg Selection
 MainTab:CreateDropdown({
-    Name = "Choose Egg Type",
+    Name = "Select Egg Type",
     Options = {"Common Egg", "Uncommon Egg", "Rare Egg", "Mythic Egg", "Bug Egg", "Paradise Egg"},
-    CurrentOption = selectedEgg,
+    CurrentOption = "Bug Egg",
     Callback = function(Value)
         selectedEgg = Value
     end
 })
 
+-- Desired Pet
 MainTab:CreateDropdown({
-    Name = "Choose Desired Pet",
+    Name = "Select Desired Pet",
     Options = {"Dragonfly", "Raccon", "Red Fox", "Mimic Octopus"},
-    CurrentOption = desiredPet,
+    CurrentOption = "Dragonfly",
     Callback = function(Value)
         desiredPet = Value
     end
 })
 
---// FUNCTION: ESP HIGHLIGHT
+-- ESP Function
 local function highlightEgg(eggModel, petName)
-    if eggModel:FindFirstChildOfClass("Part") and not eggModel:FindFirstChild("ESP") then
+    if not eggModel:FindFirstChild("ESP") and eggModel:FindFirstChildWhichIsA("Part") then
         local gui = Instance.new("BillboardGui", eggModel)
         gui.Name = "ESP"
         gui.Size = UDim2.new(0, 120, 0, 40)
-        gui.Adornee = eggModel:FindFirstChildOfClass("Part")
+        gui.Adornee = eggModel:FindFirstChildWhichIsA("Part")
         gui.AlwaysOnTop = true
 
         local label = Instance.new("TextLabel", gui)
@@ -70,9 +62,9 @@ local function highlightEgg(eggModel, petName)
     end
 end
 
---// FUNCTION: Scan local player’s eggs
+-- Scan Your Own Eggs
 local function scanMyEggs()
-    for _, obj in ipairs(workspace:GetDescendants()) do
+    for _, obj in ipairs(Workspace:GetDescendants()) do
         if obj:IsA("Model") and obj.Name:lower():find("egg") and obj:FindFirstChild("Owner") then
             local owner = obj:FindFirstChild("Owner")
             if owner and owner.Value == LocalPlayer.Name then
@@ -87,13 +79,13 @@ local function scanMyEggs()
     return false
 end
 
---// FUNCTION: Hop Servers
-local function hopToNewServer()
-    local serverList = {}
+-- Server Hop Logic
+local function hopServers()
     local cursor = ""
+    local serverList = {}
 
     repeat
-        local raw = game:HttpGet("https://games.roblox.com/v1/games/" .. game.PlaceId .. "/servers/Public?sortOrder=2&limit=100&cursor=" .. cursor)
+        local raw = game:HttpGet("https://games.roblox.com/v1/games/"..game.PlaceId.."/servers/Public?sortOrder=2&limit=100&cursor="..cursor)
         local data = HttpService:JSONDecode(raw)
         for _, server in pairs(data.data) do
             if server.playing < server.maxPlayers then
@@ -101,33 +93,34 @@ local function hopToNewServer()
             end
         end
         cursor = data.nextPageCursor
-        task.wait()
+        wait()
     until not cursor
 
-    for _, id in pairs(serverList) do
+    for _, id in ipairs(serverList) do
         TeleportService:TeleportToPlaceInstance(game.PlaceId, id, LocalPlayer)
-        task.wait(5)
+        wait(5)
     end
 end
 
---// BUTTON: Start Prediction + Hop
+-- Main Button to Start
 MainTab:CreateButton({
     Name = "Start Predict & Hop",
     Callback = function()
         local found = scanMyEggs()
         if found then
             Rayfield:Notify({
-                Title = "✅ Found Match!",
-                Content = "Your egg will hatch " .. desiredPet,
-                Duration = 4
+                Title = "✅ Match Found",
+                Content = "Predicted Pet: " .. desiredPet,
+                Duration = 5
             })
         else
             Rayfield:Notify({
                 Title = "❌ Not Found",
-                Content = "Server hopping to find your desired pet...",
+                Content = "Hopping servers...",
                 Duration = 4
             })
-            hopToNewServer()
+            hopServers()
         end
     end
 })
+
