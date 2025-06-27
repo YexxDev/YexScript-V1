@@ -1,129 +1,96 @@
--- // YexScript: Pet Prediction & Server Hop UI (Grow a Garden) //
--- Requirements: KRNL or Synapse. Rayfield UI. Works only for **your** Garden.
+-- Load OrionLib
+local OrionLib = loadstring(game:HttpGet("https://raw.githubusercontent.com/shlexware/Orion/main/source"))()
 
-local Rayfield = loadstring(game:HttpGet("https://sirius.menu/rayfield"))()
-local HttpService = game:GetService("HttpService")
-local TeleportService = game:GetService("TeleportService")
+-- Services
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
+local Workspace = game:GetService("Workspace")
 local LocalPlayer = Players.LocalPlayer
 
--- SETTINGS
-local desiredEgg = "Bug Egg"
-local desiredPet = "Dragonfly"
-local gameId = 14732615257
-local scanning = false
+-- Global Controls
+getgenv().EggESPEnabled = true
+getgenv().SelectedEggType = "All"
 
--- Egg-to-Pet Dictionary (Estimation Table)
-local EggTable = {
-    ["Bug Egg"] = {"Dragonfly"},
-    ["Mythic Egg"] = {"Red Fox"},
-    ["Paradise Egg"] = {"Mimic Octopus"},
-    ["Common"] = {},
-    ["Rare"] = {},
-    ["Uncommon"] = {},
-}
+-- Egg folder
+local EggFolder = Workspace:WaitForChild("Eggs", 10)
+if not EggFolder then
+    warn("❌ Egg folder not found!")
+    return
+end
 
--- Create Window
-local Window = Rayfield:CreateWindow({
-    Name = "YexScript - Egg Prediction Hub",
-    LoadingTitle = "YEX",
-    LoadingSubtitle = "Predicting...",
-    ConfigurationSaving = {
-        Enabled = true,
-        FolderName = "YexPredict",
-        FileName = "EggScanner"
-    },
-    Discord = {
-        Enabled = true,
-        Invite = "yexhub",
-        RememberJoins = true
-    },
-    KeySystem = false
-})
+-- ESP Function
+local function CreateEggESP(egg, petName)
+    if egg:FindFirstChild("EggESP") then return end
 
--- Main Tab
-local MainTab = Window:CreateTab("Predictor", 4483362458)
-
-MainTab:CreateDropdown({
-    Name = "Select Egg Type",
-    Options = {"Bug Egg", "Mythic Egg", "Paradise Egg", "Common", "Rare", "Uncommon"},
-    CurrentOption = "Bug Egg",
-    Callback = function(Value)
-        desiredEgg = Value
-    end
-})
-
-MainTab:CreateDropdown({
-    Name = "Desired Pet",
-    Options = {"Dragonfly", "Red Fox", "Mimic Octopus"},
-    CurrentOption = "Dragonfly",
-    Callback = function(Value)
-        desiredPet = Value
-    end
-})
-
--- ESP Egg + Predicted Pet
-local function createESP(part, labelText)
-    local esp = Instance.new("BillboardGui", part)
+    local esp = Instance.new("BillboardGui")
+    esp.Name = "EggESP"
+    esp.Adornee = egg.PrimaryPart or egg:FindFirstChildWhichIsA("BasePart")
     esp.Size = UDim2.new(0, 100, 0, 40)
     esp.AlwaysOnTop = true
-    esp.Adornee = part
+    esp.LightInfluence = 0
+    esp.ResetOnSpawn = false
 
-    local label = Instance.new("TextLabel", esp)
-    label.Size = UDim2.new(1, 0, 1, 0)
-    label.BackgroundTransparency = 1
-    label.Text = labelText
-    label.TextColor3 = Color3.fromRGB(0, 255, 0)
-    label.TextScaled = true
+    local text = Instance.new("TextLabel", esp)
+    text.Size = UDim2.new(1, 0, 1, 0)
+    text.BackgroundTransparency = 1
+    text.Text = "🐣 " .. petName
+    text.TextColor3 = Color3.fromRGB(255, 255, 0)
+    text.TextStrokeTransparency = 0.3
+    text.TextScaled = true
+    text.Font = Enum.Font.GothamBold
+
+    esp.Parent = egg
 end
 
--- Scan & ESP My Garden
-local function scanEggs()
-    for _, obj in ipairs(workspace:GetDescendants()) do
-        if obj:IsA("Model") and obj.Name:lower():find("egg") and obj:FindFirstChild("Owner") then
-            local owner = obj:FindFirstChild("Owner").Value
-            if owner == LocalPlayer.Name and obj.Name == desiredEgg then
-                local predictedPets = EggTable[desiredEgg] or {}
-                local matched = table.find(predictedPets, desiredPet)
-                createESP(obj:FindFirstChildOfClass("Part") or obj.PrimaryPart, obj.Name .. "\nPet: " .. (predictedPets[1] or "Unknown"))
-                if matched then return true end
+-- Main ESP loop
+RunService.RenderStepped:Connect(function()
+    if not getgenv().EggESPEnabled then return end
+
+    for _, egg in pairs(EggFolder:GetChildren()) do
+        if egg:IsA("Model") and not egg:FindFirstChild("EggESP") then
+            local eggType = egg:FindFirstChild("EggType")
+            local isReady = egg:FindFirstChild("ReadyToHatch")
+            local petResult = egg:FindFirstChild("PredictedPet") or egg:FindFirstChild("Result")
+
+            if isReady and isReady.Value == true then
+                if getgenv().SelectedEggType == "All" or (eggType and eggType.Value == getgenv().SelectedEggType) then
+                    local petName = petResult and petResult.Value or "Unknown"
+                    CreateEggESP(egg, petName)
+                end
             end
         end
     end
-    return false
-end
+end)
 
--- Server Hop Logic
-local function serverHop()
-    local cursor = ""
-    local tried = {}
-    repeat
-        local url = "https://games.roblox.com/v1/games/" .. gameId .. "/servers/Public?sortOrder=2&limit=100&cursor=" .. cursor
-        local response = HttpService:JSONDecode(game:HttpGet(url))
-        for _, server in ipairs(response.data) do
-            if server.playing < server.maxPlayers and not tried[server.id] then
-                tried[server.id] = true
-                TeleportService:TeleportToPlaceInstance(gameId, server.id, LocalPlayer)
-                task.wait(7)
-            end
-        end
-        cursor = response.nextPageCursor
-    until not cursor
-end
+-- GUI Setup
+local Window = OrionLib:MakeWindow({
+    Name = "🐣 Egg Prediction ESP",
+    HidePremium = false,
+    SaveConfig = false,
+    IntroEnabled = false
+})
 
-MainTab:CreateButton({
-    Name = "Start Predict & Hop",
-    Callback = function()
-        if scanning then return end
-        scanning = true
-        local match = scanEggs()
-        if match then
-            Rayfield:Notify({Title="YexScript", Content="✅ Found Matching Pet in This Server!", Duration=5})
-        else
-            Rayfield:Notify({Title="YexScript", Content="❌ Not Found. Hopping Server...", Duration=5})
-            serverHop()
-        end
-        scanning = false
+local MainTab = Window:MakeTab({
+    Name = "Main",
+    Icon = "rbxassetid://7734068321",
+    PremiumOnly = false
+})
+
+MainTab:AddToggle({
+    Name = "Enable Egg Prediction ESP",
+    Default = true,
+    Callback = function(state)
+        getgenv().EggESPEnabled = state
     end
 })
+
+MainTab:AddDropdown({
+    Name = "Egg Type Filter",
+    Default = "All",
+    Options = { "All", "Common", "Uncommon", "Rare", "Mythic", "Paradise", "Bug" },
+    Callback = function(option)
+        getgenv().SelectedEggType = option
+    end
+})
+
+OrionLib:Init()
