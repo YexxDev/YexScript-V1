@@ -1,5 +1,12 @@
--- Load OrionLib (your correct version)
-local OrionLib = loadstring(game:HttpGet(('https://raw.githubusercontent.com/jensonhirst/Orion/main/source')))()
+-- Safe OrionLib loader
+local success, OrionLib = pcall(function()
+    return loadstring(game:HttpGet("https://raw.githubusercontent.com/jensonhirst/Orion/main/source"))()
+end)
+
+if not success or not OrionLib then
+    warn("❌ Failed to load OrionLib!")
+    return
+end
 
 -- Services
 local Players = game:GetService("Players")
@@ -7,7 +14,7 @@ local RunService = game:GetService("RunService")
 local Workspace = game:GetService("Workspace")
 local LocalPlayer = Players.LocalPlayer
 
--- Global Controls
+-- Global vars
 getgenv().EggESPEnabled = true
 getgenv().SelectedEggType = "All"
 
@@ -18,7 +25,7 @@ if not EggFolder then
     return
 end
 
--- ESP Function
+-- Create ESP function
 local function CreateEggESP(egg, petName)
     if egg:FindFirstChild("EggESP") then return end
 
@@ -27,8 +34,6 @@ local function CreateEggESP(egg, petName)
     esp.Adornee = egg.PrimaryPart or egg:FindFirstChildWhichIsA("BasePart")
     esp.Size = UDim2.new(0, 100, 0, 40)
     esp.AlwaysOnTop = true
-    esp.LightInfluence = 0
-    esp.ResetOnSpawn = false
 
     local text = Instance.new("TextLabel", esp)
     text.Size = UDim2.new(1, 0, 1, 0)
@@ -42,10 +47,9 @@ local function CreateEggESP(egg, petName)
     esp.Parent = egg
 end
 
--- Main ESP loop
+-- ESP loop
 RunService.RenderStepped:Connect(function()
     if not getgenv().EggESPEnabled then return end
-
     for _, egg in pairs(EggFolder:GetChildren()) do
         if egg:IsA("Model") and not egg:FindFirstChild("EggESP") then
             local eggType = egg:FindFirstChild("EggType")
@@ -62,7 +66,7 @@ RunService.RenderStepped:Connect(function()
     end
 end)
 
--- GUI Setup using real OrionLib
+-- GUI Setup
 local Window = OrionLib:MakeWindow({
     Name = "🐣 Egg Prediction ESP",
     HidePremium = false,
@@ -79,8 +83,8 @@ local MainTab = Window:MakeTab({
 MainTab:AddToggle({
     Name = "Enable Egg Prediction ESP",
     Default = true,
-    Callback = function(state)
-        getgenv().EggESPEnabled = state
+    Callback = function(value)
+        getgenv().EggESPEnabled = value
     end
 })
 
@@ -88,9 +92,10 @@ MainTab:AddDropdown({
     Name = "Egg Type Filter",
     Default = "All",
     Options = { "All", "Common", "Uncommon", "Rare", "Mythic", "Paradise", "Bug" },
-    Callback = function(option)
-        getgenv().SelectedEggType = option
+    Callback = function(value)
+        getgenv().SelectedEggType = value
     end
 })
 
+-- ✅ CALL INIT LAST
 OrionLib:Init()
