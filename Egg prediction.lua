@@ -1,5 +1,5 @@
--- Load OrionLib
-local OrionLib = loadstring(game:HttpGet("https://raw.githubusercontent.com/shlexware/Orion/main/source"))()
+-- Load OrionLib (your correct version)
+local OrionLib = loadstring(game:HttpGet(('https://raw.githubusercontent.com/jensonhirst/Orion/main/source')))()
 
 -- Services
 local Players = game:GetService("Players")
@@ -62,7 +62,7 @@ RunService.RenderStepped:Connect(function()
     end
 end)
 
--- GUI Setup
+-- GUI Setup using real OrionLib
 local Window = OrionLib:MakeWindow({
     Name = "🐣 Egg Prediction ESP",
     HidePremium = false,
