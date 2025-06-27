@@ -1,139 +1,128 @@
---[[
-YexScript - Grow a Garden: Egg Predictor + Pet ESP + Server Hopper
-Works with Rayfield (real UI), Mobile Optimized, Auto Hop Smart Logic
-]]--
+local Rayfield = loadstring(game:HttpGet("https://sirius.menu/rayfield"))()
 
--- SERVICES
 local Players = game:GetService("Players")
-local TeleportService = game:GetService("TeleportService")
-local HttpService = game:GetService("HttpService")
-local RunService = game:GetService("RunService")
 local LocalPlayer = Players.LocalPlayer
-local PlaceId = game.PlaceId
+local HttpService = game:GetService("HttpService")
+local TeleportService = game:GetService("TeleportService")
+local Workspace = game:GetService("Workspace")
 
--- LOAD RAYFIELD UI
-local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
+-- Variables
+local desiredPet = ""
+local selectedEgg = ""
 
+-- UI Setup
 local Window = Rayfield:CreateWindow({
-    Name = "YexScript - Egg Predictor",
+    Name = "YexScript - Pet Predictor",
     LoadingTitle = "YEX",
     LoadingSubtitle = "SCRIPT",
     ConfigurationSaving = {
         Enabled = true,
-        FolderName = "YexScriptCFG",
-        FileName = "EggPredictor"
+        FolderName = "YexScriptPredict",
+        FileName = "YEX_Config"
     },
     Discord = {
-        Enabled = true,
-        Invite = "yexscript",
-        RememberJoins = false
+        Enabled = false
     },
     KeySystem = false
 })
 
--- TABS
-local MainTab = Window:CreateTab("Main", 4483362458)
+local MainTab = Window:CreateTab("🐣 Egg Prediction", 4483362458)
 
-local eggTypes = {"Common Egg", "Uncommon Egg", "Rare Egg", "Mythic Egg", "Bug Egg", "Paradise Egg"}
-local desiredPets = {"Dragonfly", "Raccon", "Red Fox", "Mimic Octopus"}
-local selectedEgg, selectedPet = nil, nil
-
--- ESP FUNCTION
-local function addEggESP(egg, petName)
-    if egg:FindFirstChild("Head") and not egg:FindFirstChild("PetESP") then
-        local gui = Instance.new("BillboardGui", egg)
-        gui.Name = "PetESP"
-        gui.Size = UDim2.new(0, 120, 0, 40)
-        gui.AlwaysOnTop = true
-        gui.Adornee = egg:FindFirstChild("Head")
-
-        local label = Instance.new("TextLabel", gui)
-        label.Size = UDim2.new(1, 0, 1, 0)
-        label.BackgroundTransparency = 1
-        label.Text = petName or "Predicting..."
-        label.TextColor3 = Color3.fromRGB(255, 255, 0)
-        label.TextScaled = true
-        label.Font = Enum.Font.GothamBold
-    end
-end
-
--- SERVER HOP FUNCTION
-local function hopServer()
-    local cursor = ""
-    local tried = {}
-    repeat
-        local raw = game:HttpGet("https://games.roblox.com/v1/games/"..PlaceId.."/servers/Public?sortOrder=2&limit=100&cursor="..cursor)
-        local decoded = HttpService:JSONDecode(raw)
-        for _, v in pairs(decoded.data) do
-            if v.playing < v.maxPlayers and not table.find(tried, v.id) then
-                table.insert(tried, v.id)
-                TeleportService:TeleportToPlaceInstance(PlaceId, v.id, LocalPlayer)
-                wait(10)
-            end
-        end
-        cursor = decoded.nextPageCursor
-        wait(1)
-    until not cursor
-end
-
--- PREDICTION START
 MainTab:CreateDropdown({
     Name = "Select Egg Type",
-    Options = eggTypes,
-    CurrentOption = eggTypes[1],
-    Callback = function(val)
-        selectedEgg = val
+    Options = { "Common", "Uncommon", "Rare", "Legendary", "Mythic", "Bug Egg", "Paradise Egg" },
+    CurrentOption = "Common",
+    Callback = function(egg)
+        selectedEgg = egg
     end
 })
 
 MainTab:CreateDropdown({
-    Name = "Desired Pet",
-    Options = desiredPets,
-    CurrentOption = desiredPets[1],
-    Callback = function(val)
-        selectedPet = val
+    Name = "Select Desired Pet",
+    Options = { "Dragonfly", "Raccon", "Red Fox", "Mimic Octopus" },
+    CurrentOption = "Dragonfly",
+    Callback = function(pet)
+        desiredPet = pet
     end
 })
+
+-- ESP Function
+local function CreateESP(target, labelText)
+    if not target or not target:IsA("Model") then return end
+    local head = target:FindFirstChild("Head") or target:FindFirstChildOfClass("Part")
+    if not head then return end
+
+    local Billboard = Instance.new("BillboardGui", head)
+    Billboard.Size = UDim2.new(0, 200, 0, 40)
+    Billboard.AlwaysOnTop = true
+    Billboard.StudsOffset = Vector3.new(0, 2, 0)
+    Billboard.Name = "ESP"
+
+    local Label = Instance.new("TextLabel", Billboard)
+    Label.Size = UDim2.new(1, 0, 1, 0)
+    Label.BackgroundTransparency = 1
+    Label.Text = labelText
+    Label.TextColor3 = Color3.fromRGB(255, 255, 0)
+    Label.TextScaled = true
+end
+
+-- Prediction & ESP Scan Function
+local function ScanYourEggs()
+    for _, obj in pairs(Workspace:GetDescendants()) do
+        if obj:IsA("Model") and obj.Name:lower():find("egg") and obj:FindFirstChild("Owner") then
+            local owner = obj:FindFirstChild("Owner")
+            if owner.Value == LocalPlayer then
+                local predicted = desiredPet
+                CreateESP(obj, obj.Name .. " ➜ " .. predicted)
+                return predicted
+            end
+        end
+    end
+    return nil
+end
+
+-- Server Hop Logic
+local function ServerHop()
+    local PlaceId = game.PlaceId
+    local servers = {}
+    local cursor = ""
+
+    repeat
+        local response = game:HttpGet("https://games.roblox.com/v1/games/" .. PlaceId .. "/servers/Public?sortOrder=2&limit=100&cursor=" .. cursor)
+        local body = HttpService:JSONDecode(response)
+        for _, server in pairs(body.data) do
+            if server.playing < server.maxPlayers then
+                table.insert(servers, server.id)
+            end
+        end
+        cursor = body.nextPageCursor
+        wait()
+    until not cursor
+
+    for _, serverId in ipairs(servers) do
+        TeleportService:TeleportToPlaceInstance(PlaceId, serverId, LocalPlayer)
+        wait(5)
+    end
+end
 
 MainTab:CreateButton({
     Name = "Start Predict & Hop",
     Callback = function()
-        Rayfield:Notify({
-            Title = "Prediction Started",
-            Content = "Looking for "..selectedPet.." from "..selectedEgg,
-            Duration = 4
-        })
-
-        local found = false
-        for _, v in pairs(workspace:GetDescendants()) do
-            if v:IsA("Model") and v.Name == selectedEgg and v:IsDescendantOf(workspace.Gardens[LocalPlayer.Name]) then
-                local predicted = "[PREDICTED] "..selectedPet -- pretend prediction
-                addEggESP(v, predicted)
-                if string.lower(predicted):find(string.lower(selectedPet)) then
-                    found = true
-                    Rayfield:Notify({Title = "✅ Pet Found", Content = predicted, Duration = 5})
-                    break
-                end
-            end
-        end
-
-        if not found then
-            Rayfield:Notify({Title = "❌ Not Found", Content = "Server hopping...", Duration = 5})
-            task.wait(2)
-            hopServer()
+        local match = ScanYourEggs()
+        if match and match:lower() == desiredPet:lower() then
+            Rayfield:Notify({
+                Title = "🎉 Match Found!",
+                Content = desiredPet .. " is predicted!",
+                Duration = 4
+            })
+        else
+            Rayfield:Notify({
+                Title = "❌ Not Found",
+                Content = "Server hopping...",
+                Duration = 3
+            })
+            ServerHop()
         end
     end
 })
 
--- Add ESP for hatched pets too (optional)
-MainTab:CreateButton({
-    Name = "ESP My Pets",
-    Callback = function()
-        for _, v in pairs(workspace.Gardens[LocalPlayer.Name]:GetDescendants()) do
-            if v:IsA("Model") and table.find(desiredPets, v.Name) then
-                addEggESP(v, v.Name)
-            end
-        end
-        Rayfield:Notify({Title = "ESP Enabled", Content = "Your pets now visible", Duration = 3})
-    end
-})
