@@ -1,9 +1,5 @@
--- YexScript Pet Prediction + ServerHop ESP (Rayfield UI)
--- Works in Grow a Garden, optimized for mobile/KRNL
+-- Fixed Pet ESP & ServerHop Hub | YexScript | Grow a Garden
 
-if game.CoreGui:FindFirstChild("Rayfield") then game.CoreGui.Rayfield:Destroy() end
-
--- Load Rayfield
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
 local HttpService = game:GetService("HttpService")
@@ -11,9 +7,13 @@ local TeleportService = game:GetService("TeleportService")
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 
--- UI Window
+-- Variables
+local SelectedPet = "Dragonfly"
+local AutoHop = false
+
+-- Rayfield UI Window
 local Window = Rayfield:CreateWindow({
-   Name = "YexScript | Pet ESP & Server Hop",
+   Name = "YexScript Hub - Pet ESP",
    LoadingTitle = "YEX",
    LoadingSubtitle = "SCRIPT",
    ConfigurationSaving = {
@@ -25,10 +25,7 @@ local Window = Rayfield:CreateWindow({
    KeySystem = false
 })
 
-local SelectedPet = "Dragonfly"
-local AutoHop = false
-
--- Egg ESP function (your own eggs only)
+-- Function: ESP Only My Eggs
 local function highlightMyEggs()
     for _, obj in ipairs(workspace:GetDescendants()) do
         if obj:IsA("Model") and obj:FindFirstChild("Owner") and obj.Owner.Value == LocalPlayer then
@@ -38,7 +35,7 @@ local function highlightMyEggs()
                     esp.Name = "ESP"
                     esp.Size = UDim2.new(0,100,0,40)
                     esp.AlwaysOnTop = true
-                    esp.Adornee = obj:FindFirstChild("Head") or obj:FindFirstChildWhichIsA("BasePart")
+                    esp.Adornee = obj:FindFirstChildWhichIsA("BasePart")
 
                     local label = Instance.new("TextLabel", esp)
                     label.Size = UDim2.new(1,0,1,0)
@@ -46,36 +43,14 @@ local function highlightMyEggs()
                     label.Text = obj.Name
                     label.TextColor3 = Color3.new(1,1,0)
                     label.TextScaled = true
+                    label.Font = Enum.Font.GothamBold
                 end
             end
         end
     end
 end
 
--- Server Hop
-local function hopServer()
-    local PlaceId = game.PlaceId
-    local cursor = ""
-    local servers = {}
-
-    repeat
-        local body = HttpService:JSONDecode(game:HttpGet("https://games.roblox.com/v1/games/"..PlaceId.."/servers/Public?sortOrder=2&limit=100&cursor="..cursor))
-        for _, v in pairs(body.data) do
-            if v.playing < v.maxPlayers then
-                table.insert(servers, v.id)
-            end
-        end
-        cursor = body.nextPageCursor
-        wait()
-    until not cursor
-
-    for _, sid in ipairs(servers) do
-        TeleportService:TeleportToPlaceInstance(PlaceId, sid, LocalPlayer)
-        wait(5)
-    end
-end
-
--- Predict Pet Logic (from egg name only, placeholder)
+-- Function: Pet Prediction
 local function predictedPetMatches()
     for _, obj in ipairs(workspace:GetDescendants()) do
         if obj:IsA("Model") and obj:FindFirstChild("Owner") and obj.Owner.Value == LocalPlayer then
@@ -90,36 +65,70 @@ local function predictedPetMatches()
     return false
 end
 
--- Main Loop
+-- Function: Server Hop
+local function hopServer()
+    local PlaceId = game.PlaceId
+    local cursor = ""
+    local servers = {}
+
+    repeat
+        local response = game:HttpGet("https://games.roblox.com/v1/games/"..PlaceId.."/servers/Public?sortOrder=2&limit=100&cursor="..cursor)
+        local body = HttpService:JSONDecode(response)
+
+        for _, v in pairs(body.data) do
+            if v.playing < v.maxPlayers then
+                table.insert(servers, v.id)
+            end
+        end
+
+        cursor = body.nextPageCursor
+        wait(0.5)
+    until not cursor
+
+    for _, sid in ipairs(servers) do
+        TeleportService:TeleportToPlaceInstance(PlaceId, sid, LocalPlayer)
+        wait(5)
+    end
+end
+
+-- Loop if AutoHop is Enabled
 task.spawn(function()
-    while task.wait(3) do
+    while task.wait(5) do
         if AutoHop then
             highlightMyEggs()
             if not predictedPetMatches() then
-                Rayfield:Notify({Title = "YexScript", Content = "Pet not matched, hopping...", Duration = 2})
+                Rayfield:Notify({
+                    Title = "YexScript",
+                    Content = "Pet doesn't match. Hopping...",
+                    Duration = 3
+                })
                 hopServer()
             else
-                Rayfield:Notify({Title = "YexScript", Content = "Match found!", Duration = 3})
+                Rayfield:Notify({
+                    Title = "YexScript",
+                    Content = "Found desired egg!",
+                    Duration = 3
+                })
             end
         end
     end
 end)
 
--- UI Elements
+-- UI Options
 Window:CreateDropdown({
-    Name = "Select Desired Pet",
+    Name = "Select Pet to Match",
     Options = {"Dragonfly", "Raccon", "Red Fox", "Mimic Octopus"},
     CurrentOption = "Dragonfly",
-    Callback = function(val)
-        SelectedPet = val
+    Callback = function(opt)
+        SelectedPet = opt
     end
 })
 
 Window:CreateToggle({
-    Name = "Auto Predict + ServerHop",
+    Name = "Enable Auto ServerHop",
     CurrentValue = false,
-    Callback = function(v)
-        AutoHop = v
+    Callback = function(bool)
+        AutoHop = bool
     end
 })
 
