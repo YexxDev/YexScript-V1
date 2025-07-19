@@ -1,101 +1,78 @@
--- 🐾 AGE 50 BYPASS GUI SCRIPT 🐾
--- Works with KRNL, Fluxus, Delta, Arceus X
+-- ✨ AGE 50 UI SCRIPT v2 ✨
+-- Works on Arceus X, KRNL, Fluxus, Delta
 
-local petId = "{82e4a72b-5756-4933-a2f1-d77b557ef9c8}" -- put your pet ID here!
-
+local lastPetUUID = nil -- will auto-update when you feed manually
 local remote = game:GetService("ReplicatedStorage").GameEvents.ActivePetService
 
--- UI LIBRARY
-local ScreenGui = Instance.new("ScreenGui")
-local Main = Instance.new("Frame")
-local Title = Instance.new("TextLabel")
-local PetIdLabel = Instance.new("TextLabel")
-local AgeLabel = Instance.new("TextLabel")
-local WeightLabel = Instance.new("TextLabel")
-local FeedBtn = Instance.new("TextButton")
-local ToggleKey = Enum.KeyCode.Y
+-- 📦 Hook Remote Calls to Capture UUID Automatically
+local mt = getrawmetatable(game)
+setreadonly(mt, false)
+local oldNamecall = mt.__namecall
 
--- SETUP UI
-ScreenGui.Name = "PetAgeUI"
-ScreenGui.Parent = game.Players.LocalPlayer:WaitForChild("PlayerGui")
-ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-
-Main.Name = "Main"
-Main.Parent = ScreenGui
-Main.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
-Main.BorderSizePixel = 0
-Main.Position = UDim2.new(0.7, 0, 0.3, 0)
-Main.Size = UDim2.new(0, 220, 0, 140)
-Main.Active = true
-Main.Draggable = true
-Main.Visible = true
-
-Title.Name = "Title"
-Title.Parent = Main
-Title.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
-Title.Size = UDim2.new(1, 0, 0, 30)
-Title.Text = "🐾 Pet Age Tool"
-Title.TextColor3 = Color3.fromRGB(255, 255, 255)
-Title.TextSize = 14
-Title.Font = Enum.Font.GothamBold
-
-PetIdLabel.Name = "PetIdLabel"
-PetIdLabel.Parent = Main
-PetIdLabel.Position = UDim2.new(0, 10, 0, 35)
-PetIdLabel.Size = UDim2.new(1, -20, 0, 20)
-PetIdLabel.Text = "Pet ID: " .. petId
-PetIdLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-PetIdLabel.TextSize = 13
-PetIdLabel.BackgroundTransparency = 1
-PetIdLabel.Font = Enum.Font.Gotham
-
-AgeLabel.Name = "AgeLabel"
-AgeLabel.Parent = Main
-AgeLabel.Position = UDim2.new(0, 10, 0, 55)
-AgeLabel.Size = UDim2.new(1, -20, 0, 20)
-AgeLabel.Text = "Age: ? (Spoof)"
-AgeLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
-AgeLabel.TextSize = 13
-AgeLabel.BackgroundTransparency = 1
-AgeLabel.Font = Enum.Font.Gotham
-
-WeightLabel.Name = "WeightLabel"
-WeightLabel.Parent = Main
-WeightLabel.Position = UDim2.new(0, 10, 0, 75)
-WeightLabel.Size = UDim2.new(1, -20, 0, 20)
-WeightLabel.Text = "Weight: ? (Spoof)"
-WeightLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
-WeightLabel.TextSize = 13
-WeightLabel.BackgroundTransparency = 1
-WeightLabel.Font = Enum.Font.Gotham
-
-FeedBtn.Name = "FeedBtn"
-FeedBtn.Parent = Main
-FeedBtn.BackgroundColor3 = Color3.fromRGB(0, 160, 0)
-FeedBtn.Position = UDim2.new(0.2, 0, 0.75, 0)
-FeedBtn.Size = UDim2.new(0.6, 0, 0.18, 0)
-FeedBtn.Text = "Make Age 50"
-FeedBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-FeedBtn.TextSize = 14
-FeedBtn.Font = Enum.Font.GothamBold
-
--- Button Logic
-FeedBtn.MouseButton1Click:Connect(function()
-    spawn(function()
-        for i = 1, 100 do
-            remote:FireServer("Feed", petId)
-            task.wait(0.05)
-        end
-        FeedBtn.Text = "✅ Done!"
-        task.wait(1)
-        FeedBtn.Text = "Make Age 50"
-    end)
+mt.__namecall = newcclosure(function(self, ...)
+    local method = getnamecallmethod()
+    local args = {...}
+    if tostring(self) == "ActivePetService" and method == "FireServer" and args[1] == "Feed" then
+        lastPetUUID = args[2]
+        print("📦 Captured Pet UUID:", lastPetUUID)
+    end
+    return oldNamecall(self, unpack(args))
 end)
 
--- Toggle Keybind (press "Y" to hide/show GUI)
+-- 🖥 UI Elements
+local gui = Instance.new("ScreenGui", game.Players.LocalPlayer:WaitForChild("PlayerGui"))
+gui.Name = "PetAgeUI"
+
+local frame = Instance.new("Frame", gui)
+frame.Size = UDim2.new(0, 200, 0, 100)
+frame.Position = UDim2.new(0.75, 0, 0.4, 0)
+frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+frame.BorderSizePixel = 0
+frame.Active = true
+frame.Draggable = true
+
+local title = Instance.new("TextLabel", frame)
+title.Size = UDim2.new(1, 0, 0, 30)
+title.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+title.Text = "🐾 Age Pet to 50"
+title.TextColor3 = Color3.fromRGB(255, 255, 255)
+title.Font = Enum.Font.GothamBold
+title.TextSize = 14
+
+local button = Instance.new("TextButton", frame)
+button.Size = UDim2.new(0.8, 0, 0, 30)
+button.Position = UDim2.new(0.1, 0, 0.55, 0)
+button.Text = "Start Feeding"
+button.BackgroundColor3 = Color3.fromRGB(0, 170, 0)
+button.TextColor3 = Color3.fromRGB(255, 255, 255)
+button.Font = Enum.Font.GothamBold
+button.TextSize = 14
+
+-- ✅ Button Logic
+button.MouseButton1Click:Connect(function()
+    if lastPetUUID == nil then
+        button.Text = "⚠️ No pet detected!"
+        task.wait(2)
+        button.Text = "Start Feeding"
+        return
+    end
+
+    button.Text = "Feeding..."
+    for i = 1, 100 do
+        remote:FireServer("Feed", lastPetUUID)
+        task.wait(0.05)
+    end
+    button.Text = "✅ Done!"
+    task.wait(2)
+    button.Text = "Start Feeding"
+end)
+
+-- 🎹 Toggle GUI with "Y"
 local UIS = game:GetService("UserInputService")
-UIS.InputBegan:Connect(function(input, processed)
-    if not processed and input.KeyCode == ToggleKey then
-        Main.Visible = not Main.Visible
+UIS.InputBegan:Connect(function(input, gpe)
+    if not gpe and input.KeyCode == Enum.KeyCode.Y then
+        frame.Visible = not frame.Visible
     end
 end)
+
+print("✅ Pet Age UI loaded! Feed a pet once manually so it can detect the ID.")
