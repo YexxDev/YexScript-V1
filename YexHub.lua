@@ -1,48 +1,47 @@
--- // Load Rayfield UI
-local Rayfield = loadstring(game:HttpGet("https://sirius.menu/rayfield"))()
+local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
--- // Variables
-local player = game.Players.LocalPlayer
-local PetsFolder = workspace:WaitForChild("Pets")
-local gardenCenter = Vector3.new(0, 5, 0) -- Change this to actual center of your garden
-local autoMid = false
+-- Variables
+local AutoMid = false
+local RunService = game:GetService("RunService")
 
--- // Rayfield UI Setup
+-- UI Setup
 local Window = Rayfield:CreateWindow({
-    Name = "🌱 Grow a Garden - Yex UI",
-    LoadingTitle = "Grow a Garden Hub",
-    LoadingSubtitle = "by Yexel",
+    Name = "Grow a Garden - Pet Center Control",
+    LoadingTitle = "Grow a Garden",
+    LoadingSubtitle = "by Yexellzz",
     ConfigurationSaving = {
-        Enabled = false,
+        Enabled = false
     },
     Discord = {
-        Enabled = false,
+        Enabled = false
     },
-    KeySystem = false,
+    KeySystem = false
 })
 
-local MainTab = Window:CreateTab("Main", 4483362458)
+local MainTab = Window:CreateTab("Main", 4483362458) -- Icon optional
 MainTab:CreateToggle({
     Name = "Auto Mid Pet",
     CurrentValue = false,
     Flag = "AutoMidPetToggle",
     Callback = function(Value)
-        autoMid = Value
+        AutoMid = Value
     end,
 })
 
--- // Loop to auto-mid pet
+-- Move pets to garden center loop
 task.spawn(function()
-    while task.wait(0.3) do
-        if autoMid then
-            for _, pet in pairs(PetsFolder:GetChildren()) do
-                if pet:FindFirstChild("Owner") and pet.Owner.Value == player then
-                    local hrp = pet:FindFirstChild("HumanoidRootPart") or pet:FindFirstChildWhichIsA("BasePart")
-                    if hrp then
-                        pet:PivotTo(CFrame.new(gardenCenter))
+    while true do
+        if AutoMid then
+            local garden = game:GetService("Workspace"):FindFirstChild("Garden")
+            if garden then
+                local center = garden.Position
+                for _, pet in ipairs(garden:GetChildren()) do
+                    if pet:IsA("Model") and pet:FindFirstChild("HumanoidRootPart") then
+                        pet.HumanoidRootPart.CFrame = CFrame.new(center)
                     end
                 end
             end
         end
+        task.wait(1) -- You can adjust speed
     end
 end)
