@@ -1,104 +1,118 @@
--- UI Setup
-local ScreenGui = Instance.new("ScreenGui")
-local MainFrame = Instance.new("Frame")
-local Title = Instance.new("TextLabel")
-local PetDropdown = Instance.new("TextButton")
-local PetList = Instance.new("Frame")
-local AutoMiddleToggle = Instance.new("TextButton")
+-- Services
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local LocalPlayer = Players.LocalPlayer
 
--- Parent setup
-ScreenGui.Parent = game.Players.LocalPlayer:WaitForChild("PlayerGui")
-ScreenGui.ResetOnSpawn = false
+-- Screen GUI
+local screenGui = Instance.new("ScreenGui", LocalPlayer:WaitForChild("PlayerGui"))
+screenGui.Name = "AutoPetMiddleUI"
+screenGui.ResetOnSpawn = false
 
--- Frame settings
-MainFrame.Size = UDim2.new(0, 400, 0, 300)
-MainFrame.Position = UDim2.new(0.5, -200, 0.5, -150)
-MainFrame.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-MainFrame.BackgroundTransparency = 0.3
-MainFrame.BorderSizePixel = 0
-MainFrame.Parent = ScreenGui
-MainFrame.Active = true
-MainFrame.Draggable = true
+-- Main Frame
+local mainFrame = Instance.new("Frame", screenGui)
+mainFrame.Size = UDim2.new(0, 400, 0, 280)
+mainFrame.Position = UDim2.new(0.3, 0, 0.2, 0)
+mainFrame.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+mainFrame.BackgroundTransparency = 0.3
+mainFrame.BorderSizePixel = 0
 
 -- Title
-Title.Text = "Grow a Garden - Pet Control"
-Title.Size = UDim2.new(1, 0, 0, 40)
-Title.TextColor3 = Color3.new(1,1,1)
-Title.Font = Enum.Font.SourceSansBold
-Title.TextScaled = true
-Title.BackgroundTransparency = 1
-Title.Parent = MainFrame
+local title = Instance.new("TextLabel", mainFrame)
+title.Text = "Auto Middle Pet - Grow A Garden"
+title.Size = UDim2.new(1, 0, 0, 40)
+title.TextColor3 = Color3.new(1,1,1)
+title.BackgroundTransparency = 1
+title.Font = Enum.Font.SourceSansBold
+title.TextScaled = true
 
--- Dropdown Button
-PetDropdown.Text = "Select Pet"
-PetDropdown.Size = UDim2.new(0, 300, 0, 40)
-PetDropdown.Position = UDim2.new(0, 50, 0, 60)
-PetDropdown.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
-PetDropdown.TextColor3 = Color3.new(1,1,1)
-PetDropdown.Font = Enum.Font.SourceSans
-PetDropdown.TextScaled = true
-PetDropdown.Parent = MainFrame
+-- Dropdown
+local dropdown = Instance.new("TextButton", mainFrame)
+dropdown.Size = UDim2.new(0.8, 0, 0, 40)
+dropdown.Position = UDim2.new(0.1, 0, 0.25, 0)
+dropdown.Text = "Select Pet"
+dropdown.BackgroundColor3 = Color3.fromRGB(60,60,60)
+dropdown.TextColor3 = Color3.new(1,1,1)
+dropdown.Font = Enum.Font.SourceSans
+dropdown.TextScaled = true
 
--- Dropdown list frame
-PetList.Visible = false
-PetList.Size = UDim2.new(0, 300, 0, 150)
-PetList.Position = PetDropdown.Position + UDim2.new(0, 0, 0, 40)
-PetList.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-PetList.BorderSizePixel = 0
-PetList.Parent = MainFrame
+-- Auto Toggle
+local toggle = Instance.new("TextButton", mainFrame)
+toggle.Size = UDim2.new(0.8, 0, 0, 40)
+toggle.Position = UDim2.new(0.1, 0, 0.5, 0)
+toggle.Text = "Auto Middle: OFF"
+toggle.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
+toggle.TextColor3 = Color3.new(1,1,1)
+toggle.Font = Enum.Font.SourceSans
+toggle.TextScaled = true
 
--- Toggle Button
-AutoMiddleToggle.Text = "Auto Middle: OFF"
-AutoMiddleToggle.Size = UDim2.new(0, 300, 0, 40)
-AutoMiddleToggle.Position = UDim2.new(0, 50, 0, 230)
-AutoMiddleToggle.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
-AutoMiddleToggle.TextColor3 = Color3.new(1, 1, 1)
-AutoMiddleToggle.Font = Enum.Font.SourceSans
-AutoMiddleToggle.TextScaled = true
-AutoMiddleToggle.Parent = MainFrame
+-- Variables
+local autoEnabled = false
+local selectedPetName = nil
 
--- Logic
-local selectedPet = nil
-local autoMiddle = false
-
--- Fetch and populate pets
-local function refreshPetList()
-	PetList:ClearAllChildren()
-	local pets = workspace.Pets:GetChildren()
-	for _, pet in pairs(pets) do
-		local button = Instance.new("TextButton")
-		button.Size = UDim2.new(1, 0, 0, 30)
-		button.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
-		button.TextColor3 = Color3.new(1, 1, 1)
-		button.Font = Enum.Font.SourceSans
-		button.TextScaled = true
-		button.Text = pet.Name
-		button.Parent = PetList
-
-		button.MouseButton1Click:Connect(function()
-			selectedPet = pet
-			PetDropdown.Text = "Pet: " .. pet.Name
-			PetList.Visible = false
-		end)
+-- Detect Current Pets in Garden
+local function getPets()
+	local petsFolder = workspace:FindFirstChild(LocalPlayer.Name .. "_Pets")
+	if petsFolder then
+		local pets = {}
+		for _, pet in ipairs(petsFolder:GetChildren()) do
+			table.insert(pets, pet.Name)
+		end
+		return pets
 	end
+	return {}
 end
 
-PetDropdown.MouseButton1Click:Connect(function()
-	PetList.Visible = not PetList.Visible
-	refreshPetList()
+-- Dropdown Function
+local dropdownOpen = false
+local dropdownList
+
+dropdown.MouseButton1Click:Connect(function()
+	if dropdownList then dropdownList:Destroy() end
+	dropdownOpen = not dropdownOpen
+	if dropdownOpen then
+		dropdownList = Instance.new("Frame", mainFrame)
+		dropdownList.Position = UDim2.new(0.1, 0, 0.38, 0)
+		dropdownList.Size = UDim2.new(0.8, 0, 0, 120)
+		dropdownList.BackgroundColor3 = Color3.fromRGB(40,40,40)
+		dropdownList.BorderSizePixel = 0
+
+		local layout = Instance.new("UIListLayout", dropdownList)
+		layout.SortOrder = Enum.SortOrder.LayoutOrder
+
+		for _, petName in ipairs(getPets()) do
+			local btn = Instance.new("TextButton", dropdownList)
+			btn.Size = UDim2.new(1, 0, 0, 30)
+			btn.Text = petName
+			btn.BackgroundColor3 = Color3.fromRGB(60,60,60)
+			btn.TextColor3 = Color3.new(1,1,1)
+			btn.Font = Enum.Font.SourceSans
+			btn.TextScaled = true
+
+			btn.MouseButton1Click:Connect(function()
+				selectedPetName = petName
+				dropdown.Text = "Pet: " .. petName
+				dropdownList:Destroy()
+				dropdownOpen = false
+			end)
+		end
+	end
 end)
 
-AutoMiddleToggle.MouseButton1Click:Connect(function()
-	autoMiddle = not autoMiddle
-	AutoMiddleToggle.Text = "Auto Middle: " .. (autoMiddle and "ON" or "OFF")
+-- Toggle Button
+toggle.MouseButton1Click:Connect(function()
+	autoEnabled = not autoEnabled
+	toggle.Text = "Auto Middle: " .. (autoEnabled and "ON" or "OFF")
 end)
 
--- Loop to move selected pet to center
-task.spawn(function()
-	while true do
-		task.wait(0.5)
-		if autoMiddle and selectedPet and selectedPet:FindFirstChild("HumanoidRootPart") then
-			selectedPet.HumanoidRootPart.CFrame = CFrame.new(workspace.Garden.Middle.Position + Vector3.new(0, 2, 0))
+-- Auto Move to Middle
+RunService.Heartbeat:Connect(function()
+	if autoEnabled and selectedPetName then
+		local petsFolder = workspace:FindFirstChild(LocalPlayer.Name .. "_Pets")
+		if petsFolder then
+			local pet = petsFolder:FindFirstChild(selectedPetName)
+			if pet and pet:IsA("Model") and pet:FindFirstChild("HumanoidRootPart") then
+				pet:PivotTo(CFrame.new(Vector3.new(0, 1, 0))) -- Center of garden
+			end
 		end
 	end
 end)
