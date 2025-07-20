@@ -1,152 +1,190 @@
--- WAIT FOR GAME LOAD
-repeat task.wait() until game:IsLoaded()
+
+-- Grow a Garden Auto GUI Script (ZEN UPDATE) by Yexel
+-- Features: Auto Plant, Auto Water, Auto Hatch, Tranquil Collect, Weather Toggle, Shops, Full GUI
+
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local GardenFolder = workspace:WaitForChild("Gardens")[Players.LocalPlayer.Name]
-local RS = ReplicatedStorage:WaitForChild("Events")
+local Player = Players.LocalPlayer
+local Mouse = Player:GetMouse()
+local RunService = game:GetService("RunService")
+local UIS = game:GetService("UserInputService")
 
--- FLAG VARIABLES
-local S = {
-  autoCollect=false, autoWater=false, autoHatch=false, autoPlaceEgg=false,
-  autoTranquil=false, autoSubmit=false
-}
+-- Create GUI
+local ScreenGui = Instance.new("ScreenGui", Player:WaitForChild("PlayerGui"))
+ScreenGui.Name = "GrowAGardenGUI"
 
--- UI SETUP
-local gui = Instance.new("ScreenGui", Players.LocalPlayer:WaitForChild("PlayerGui"))
-gui.Name = "ZenGardenHub"
-local frame = Instance.new("Frame", gui)
-frame.Size = UDim2.new(0, 320, 0, 380)
-frame.Position = UDim2.new(0.5,-160,0.4,-190)
-frame.BackgroundColor3 = Color3.new(0.1,0.1,0.1)
-frame.Active = true; frame.Draggable = true
-frame.Visible = false
+-- Toggle Button (Z Icon)
+local toggleBtn = Instance.new("ImageButton", ScreenGui)
+toggleBtn.Name = "ToggleGUI"
+toggleBtn.Position = UDim2.new(0, 10, 0, 10)
+toggleBtn.Size = UDim2.new(0, 40, 0, 40)
+toggleBtn.Image = "rbxassetid://17582948232" -- Z icon
+toggleBtn.BackgroundTransparency = 1
 
--- Toggle Key Button
-local btnToggle = Instance.new("TextButton", gui)
-btnToggle.Text = "🧘"
-btnToggle.Size = UDim2.new(0, 40, 0, 40)
-btnToggle.Position = UDim2.new(0, 10, 0.5, -20)
-btnToggle.BackgroundColor3 = Color3.new(0.15,0.15,0.15)
-btnToggle.TextColor3 = Color3.new(1,1,1)
-btnToggle.Font = Enum.Font.GothamBold; btnToggle.TextSize = 24
-btnToggle.MouseButton1Click:Connect(function()
-    frame.Visible = not frame.Visible
-end)
-game:GetService("UserInputService").InputBegan:Connect(function(i,gp)
-    if not gp and i.KeyCode == Enum.KeyCode.RightShift then
-        frame.Visible = not frame.Visible
-    end
-end)
+-- Main Frame
+local mainFrame = Instance.new("Frame", ScreenGui)
+mainFrame.Name = "MainFrame"
+mainFrame.Position = UDim2.new(0, 60, 0, 50)
+mainFrame.Size = UDim2.new(0, 400, 0, 300)
+mainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+mainFrame.Visible = true
+mainFrame.Active = true
+mainFrame.Draggable = true
 
--- Notify function
-local function notify(msg)
-    game.StarterGui:SetCore("SendNotification", {Title="Zen Hub",Text=msg,Duration=3})
-end
+-- Tabs
+local tabs = {"Main", "Zen", "Egg", "Shop", "Misc"}
+local tabFrames = {}
 
-notify("Zen Garden Hub Loaded!")
-
--- Tab creation helper
-local tabs = {}
-local function mkTab(name, x)
-    local b = Instance.new("TextButton", frame)
-    b.Text = name; b.Size = UDim2.new(0,80,0,30)
-    b.Position = UDim2.new(0, x, 0, 40)
-    b.BackgroundColor3 = Color3.new(0.2,0.2,0.2); b.TextColor3 = Color3.new(1,1,1)
-    local f = Instance.new("Frame", frame)
-    f.Size = UDim2.new(1, -10, 1, -100); f.Position = UDim2.new(0,5,0,80)
-    f.Visible = false
-    tabs[#tabs+1] = {btn=b,frame=f}
-    b.MouseButton1Click:Connect(function()
-        for _,t in pairs(tabs) do t.frame.Visible=false end
-        f.Visible=true
-    end)
-    return f
-end
-
--- MAIN TAB
-local main = mkTab("Main", 0.05)
-local function addToggle(f, text, flag)
-    local btn = Instance.new("TextButton", f)
-    btn.Text = text..": OFF"; btn.Size = UDim2.new(0,200,0,30)
-    btn.Position = UDim2.new(0,10,#f:GetChildren()*0.12+10)
-    btn.BackgroundColor3 = Color3.new(0.3,0.3,0.3); btn.TextColor3 = Color3.new(1,1,1)
+local function createTabButton(tabName, index)
+    local btn = Instance.new("TextButton", mainFrame)
+    btn.Text = tabName
+    btn.Size = UDim2.new(0, 80, 0, 25)
+    btn.Position = UDim2.new(0, (index - 1) * 80, 0, 0)
+    btn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+    btn.TextColor3 = Color3.fromRGB(255, 255, 255)
     btn.MouseButton1Click:Connect(function()
-        S[flag] = not S[flag]
-        btn.Text = text..": "..(S[flag] and "ON" or "OFF")
-        notify(text.." "..(S[flag] and "Enabled" or "Disabled"))
+        for _, frame in pairs(tabFrames) do frame.Visible = false end
+        tabFrames[tabName].Visible = true
     end)
 end
 
-addToggle(main, "Auto Collect Crops", "autoCollect")
-addToggle(main, "Auto Water Plants", "autoWater")
+for i, tabName in ipairs(tabs) do
+    createTabButton(tabName, i)
+    local frame = Instance.new("Frame", mainFrame)
+    frame.Position = UDim2.new(0, 0, 0, 30)
+    frame.Size = UDim2.new(1, 0, 1, -30)
+    frame.Visible = i == 1
+    frame.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+    tabFrames[tabName] = frame
+end
 
--- EGG TAB
-local egg = mkTab("Egg", 0.30)
-addToggle(egg, "Auto Hatch Egg", "autoHatch")
-addToggle(egg, "Auto Place Egg", "autoPlaceEgg")
+-- Utility Functions
+local function createToggle(parent, text, callback)
+    local toggle = Instance.new("TextButton", parent)
+    toggle.Size = UDim2.new(1, -10, 0, 30)
+    toggle.Position = UDim2.new(0, 5, 0, #parent:GetChildren() * 35)
+    toggle.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+    toggle.TextColor3 = Color3.fromRGB(255, 255, 255)
+    toggle.Text = text .. ": OFF"
+    local state = false
+    toggle.MouseButton1Click:Connect(function()
+        state = not state
+        toggle.Text = text .. ": " .. (state and "ON" or "OFF")
+        callback(state)
+    end)
+end
 
--- ZEN TAB
-local zen = mkTab("Zen", 0.55)
-addToggle(zen, "Auto Collect Tranquil", "autoTranquil")
-addToggle(zen, "Auto Submit Zen Quest", "autoSubmit")
-local btnShop = Instance.new("TextButton", zen)
-btnShop.Text="Open Zen Shop"; btnShop.Size=UDim2.new(0,200,0,30)
-btnShop.Position=UDim2.new(0,10,0,200)
-btnShop.BackgroundColor3 = Color3.new(0.3,0.3,0.3); btnShop.TextColor3=Color3.new(1,1,1)
-btnShop.MouseButton1Click:Connect(function()
-    if RS:FindFirstChild("OpenShop") then RS.OpenShop:FireServer("Zen") end
-    notify("Zen Shop Opened")
-end)
+local function createButton(parent, text, callback)
+    local btn = Instance.new("TextButton", parent)
+    btn.Size = UDim2.new(1, -10, 0, 30)
+    btn.Position = UDim2.new(0, 5, 0, #parent:GetChildren() * 35)
+    btn.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
+    btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    btn.Text = text
+    btn.MouseButton1Click:Connect(callback)
+end
 
--- MISC TAB
-local misc = mkTab("Misc", 0.80)
-local spd = Instance.new("TextBox", misc)
-spd.PlaceholderText="WalkSpeed"; spd.Size=UDim2.new(0,120,0,25); spd.Position=UDim2.new(0,10,0,10)
-spd.FocusLost:Connect(function(e)
-    local v=tonumber(spd.Text)
-    if v then Player.Character.Humanoid.WalkSpeed=v; notify("WalkSpeed="..v) end
-end)
-local jp = Instance.new("TextBox", misc)
-jp.PlaceholderText="JumpPower"; jp.Size=UDim2.new(0,120,0,25); jp.Position=UDim2.new(0,10,0,50)
-jp.FocusLost:Connect(function(e)
-    local v=tonumber(jp.Text)
-    if v then Player.Character.Humanoid.JumpPower=v; notify("JumpPower="..v) end
-end)
+-- Feature Implementations
+local autoPlant = false
+local autoWater = false
+local autoTranquil = false
+local autoHatch = false
+local autoEggPlant = false
 
--- ACTIVITY LOOPS
-task.spawn(function()
-    while true do
-        task.wait(1)
-        if S.autoCollect then
-            for _,crop in pairs(GardenFolder:GetChildren()) do
-                if crop:FindFirstChild("Collect") then fireproximityprompt(crop.Collect) end
-            end
-        end
-        if S.autoWater then
-            RS.ToolUse:FireServer("Watering Can", Player.Character.HumanoidRootPart.Position)
-        end
-        if S.autoHatch then
-            for _,v in pairs(workspace:GetDescendants()) do
-                if v.Name:match("Egg") and v:IsA("ClickDetector") then fireclickdetector(v) end
-            end
-        end
-        if S.autoPlaceEgg then
-            for _,it in pairs(Player.Backpack:GetChildren()) do
-                if it.Name:match("Egg") then RS.PlaceEgg:FireServer(it) end
-            end
-        end
-        if S.autoTranquil then
-            for _,crop in pairs(GardenFolder:GetChildren()) do
-                if crop:FindFirstChild("Collect") and crop:FindFirstChild("Mutation") and crop.Mutation.Value=="Tranquil" then
-                    fireproximityprompt(crop.Collect)
+RunService.RenderStepped:Connect(function()
+    if autoPlant then
+        local tool = Player.Character:FindFirstChild("Seed Bag")
+        if tool then
+            for _, plot in ipairs(workspace.Plots:GetChildren()) do
+                if plot:FindFirstChild("ClickDetector") and not plot:FindFirstChild("Plant") then
+                    fireclickdetector(plot.ClickDetector)
                 end
             end
         end
-        if S.autoSubmit then
-            RS.SubmitZenQuest:FireServer()
+    end
+
+    if autoWater then
+        local tool = Player.Character:FindFirstChild("Watering Can")
+        if tool then
+            for _, plot in ipairs(workspace.Plots:GetChildren()) do
+                if plot:FindFirstChild("Plant") and plot:FindFirstChild("Thirst") then
+                    fireclickdetector(plot.ClickDetector)
+                end
+            end
+        end
+    end
+
+    if autoTranquil then
+        for _, plant in ipairs(workspace.Tranquil:GetChildren()) do
+            if plant:IsA("Model") and plant:FindFirstChild("ClickDetector") then
+                fireclickdetector(plant.ClickDetector)
+            end
+        end
+    end
+
+    if autoHatch then
+        for _, egg in ipairs(workspace.Eggs:GetChildren()) do
+            if egg:FindFirstChild("ClickDetector") then
+                fireclickdetector(egg.ClickDetector)
+            end
+        end
+    end
+
+    if autoEggPlant then
+        local tool = Player.Character:FindFirstChild("Egg Planting Tool")
+        if tool then
+            for _, plot in ipairs(workspace.Plots:GetChildren()) do
+                if plot:FindFirstChild("ClickDetector") and not plot:FindFirstChild("Plant") then
+                    fireclickdetector(plot.ClickDetector)
+                end
+            end
         end
     end
 end)
 
-tabs[1].btn.MouseButton1Click()
-frame.Visible = true
+-- Main Tab
+createToggle(tabFrames["Main"], "Auto Plant Seeds", function(state) autoPlant = state end)
+createToggle(tabFrames["Main"], "Auto Watering Can", function(state) autoWater = state end)
+
+-- Zen Tab
+createToggle(tabFrames["Zen"], "Auto Collect Tranquil Plants", function(state) autoTranquil = state end)
+createButton(tabFrames["Zen"], "Open Tranquil Shop", function()
+    local shopBtn = Player.PlayerGui:FindFirstChild("UI"):FindFirstChild("TranquilShop")
+    if shopBtn then shopBtn.Visible = true end
+end)
+
+-- Egg Tab
+createToggle(tabFrames["Egg"], "Auto Hatch Eggs", function(state) autoHatch = state end)
+createToggle(tabFrames["Egg"], "Auto Plant Eggs", function(state) autoEggPlant = state end)
+
+-- Shop Tab
+createButton(tabFrames["Shop"], "Open Seed Shop", function()
+    local shop = Player.PlayerGui:FindFirstChild("UI"):FindFirstChild("SeedShop")
+    if shop then shop.Visible = true end
+end)
+createButton(tabFrames["Shop"], "Open Gear Shop", function()
+    local gear = Player.PlayerGui:FindFirstChild("UI"):FindFirstChild("GearShop")
+    if gear then gear.Visible = true end
+end)
+createButton(tabFrames["Shop"], "Open Tranquil Shop", function()
+    local tranquil = Player.PlayerGui:FindFirstChild("UI"):FindFirstChild("TranquilShop")
+    if tranquil then tranquil.Visible = true end
+end)
+
+-- Misc Tab
+local fakeWeatherEnabled = false
+createToggle(tabFrames["Misc"], "Fake Weather", function(state)
+    fakeWeatherEnabled = state
+    if state then
+        game.Lighting.TimeOfDay = "18:00:00"
+        game.Lighting.FogEnd = 100
+    else
+        game.Lighting.TimeOfDay = "12:00:00"
+        game.Lighting.FogEnd = 1000
+    end
+end)
+
+-- Toggle GUI
+toggleBtn.MouseButton1Click:Connect(function()
+    mainFrame.Visible = not mainFrame.Visible
+end)
