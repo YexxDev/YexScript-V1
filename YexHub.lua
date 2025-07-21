@@ -1,119 +1,146 @@
---// Full RemoteEvent/Function Spy Tool with Big UI and Copy Button
+--// Remote and Click Spy Script with Medium UI & Copy buttons
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
+local Mouse = LocalPlayer:GetMouse()
+local HttpService = game:GetService("HttpService")
+local UIS = game:GetService("UserInputService")
 
--- Destroy old UI if exists
-pcall(function() game.CoreGui:FindFirstChild("RemoteSpyUI"):Destroy() end)
-
--- Create UI
-local ScreenGui = Instance.new("ScreenGui", game:GetService("CoreGui"))
+-- GUI Setup
+local ScreenGui = Instance.new("ScreenGui", game.CoreGui)
 ScreenGui.Name = "RemoteSpyUI"
 
-local MainFrame = Instance.new("Frame", ScreenGui)
-MainFrame.Size = UDim2.new(0, 600, 0, 400)
-MainFrame.Position = UDim2.new(0.5, -300, 0.5, -200)
-MainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
-MainFrame.BorderSizePixel = 0
-MainFrame.Active = true
-MainFrame.Draggable = true
+local Frame = Instance.new("Frame", ScreenGui)
+Frame.Size = UDim2.new(0, 450, 0, 350)
+Frame.Position = UDim2.new(0.3, 0, 0.3, 0)
+Frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+Frame.BorderSizePixel = 0
+Frame.Name = "MainFrame"
+Frame.Active = true
+Frame.Draggable = true
 
-local Title = Instance.new("TextLabel", MainFrame)
-Title.Size = UDim2.new(1, 0, 0, 40)
-Title.Text = "🔥 Remote Spy Tool with Copy"
-Title.TextColor3 = Color3.new(1, 1, 1)
-Title.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
-Title.Font = Enum.Font.SourceSansBold
-Title.TextSize = 22
+local Title = Instance.new("TextLabel", Frame)
+Title.Size = UDim2.new(1, 0, 0, 30)
+Title.Text = "📡 Remote/Click Spy"
+Title.TextColor3 = Color3.fromRGB(255, 255, 255)
+Title.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+Title.BorderSizePixel = 0
+Title.Font = Enum.Font.SourceSansSemibold
+Title.TextSize = 18
 
-local ScrollingFrame = Instance.new("ScrollingFrame", MainFrame)
-ScrollingFrame.Position = UDim2.new(0, 0, 0, 40)
-ScrollingFrame.Size = UDim2.new(1, 0, 1, -40)
+local ScrollingFrame = Instance.new("ScrollingFrame", Frame)
+ScrollingFrame.Size = UDim2.new(1, -10, 1, -40)
+ScrollingFrame.Position = UDim2.new(0, 5, 0, 35)
 ScrollingFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
-ScrollingFrame.ScrollBarThickness = 8
-ScrollingFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-ScrollingFrame.AutomaticCanvasSize = Enum.AutomaticSize.Y
+ScrollingFrame.ScrollBarThickness = 6
+ScrollingFrame.BackgroundTransparency = 1
+ScrollingFrame.BorderSizePixel = 0
 
-local UIList = Instance.new("UIListLayout", ScrollingFrame)
-UIList.Padding = UDim.new(0, 6)
-UIList.SortOrder = Enum.SortOrder.LayoutOrder
+-- Add UIListLayout to organize items
+local layout = Instance.new("UIListLayout", ScrollingFrame)
+layout.SortOrder = Enum.SortOrder.LayoutOrder
+layout.Padding = UDim.new(0, 4)
 
-local function formatArgument(arg)
-	local typeofArg = typeof(arg)
-	if typeofArg == "string" then
-		return string.format("%q", arg)
-	elseif typeofArg == "Instance" then
-		return string.format("game.%s", arg:GetFullName())
-	elseif typeofArg == "Vector3" then
-		return string.format("Vector3.new(%s, %s, %s)", arg.X, arg.Y, arg.Z)
-	elseif typeofArg == "CFrame" then
-		return string.format("CFrame.new(%s)", tostring(arg))
-	elseif typeofArg == "table" then
-		local success, result = pcall(function() return game:GetService("HttpService"):JSONEncode(arg) end)
-		if success then return result end
-	end
-	return tostring(arg)
-end
+local index = 0
 
-local function createEntry(name, args, method)
-	local Frame = Instance.new("Frame")
-	Frame.Size = UDim2.new(1, -12, 0, 60)
-	Frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-	Frame.BorderSizePixel = 0
-	Frame.Parent = ScrollingFrame
+-- Helper function to add entries
+local function addEntry(text, copyText)
+	index += 1
 
-	local Label = Instance.new("TextLabel", Frame)
-	Label.Size = UDim2.new(1, -100, 1, 0)
-	Label.Position = UDim2.new(0, 5, 0, 0)
-	Label.TextXAlignment = Enum.TextXAlignment.Left
-	Label.TextYAlignment = Enum.TextYAlignment.Top
-	Label.TextWrapped = true
-	Label.TextColor3 = Color3.new(1, 1, 1)
-	Label.TextSize = 14
-	Label.Font = Enum.Font.Code
-	Label.BackgroundTransparency = 1
+	local holder = Instance.new("Frame")
+	holder.Size = UDim2.new(1, 0, 0, 60)
+	holder.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+	holder.BorderSizePixel = 0
+	holder.Parent = ScrollingFrame
 
-	local code = method .. " = game." .. name .. ":" .. method .. "Server(" .. table.concat(args, ", ") .. ")"
+	local lbl = Instance.new("TextLabel", holder)
+	lbl.Size = UDim2.new(1, -80, 1, -10)
+	lbl.Position = UDim2.new(0, 5, 0, 5)
+	lbl.Text = index..". "..text
+	lbl.TextWrapped = true
+	lbl.TextColor3 = Color3.fromRGB(255, 255, 255)
+	lbl.Font = Enum.Font.Code
+	lbl.TextSize = 14
+	lbl.BackgroundTransparency = 1
+	lbl.TextXAlignment = Enum.TextXAlignment.Left
 
-	Label.Text = code
-
-	local CopyButton = Instance.new("TextButton", Frame)
-	CopyButton.Size = UDim2.new(0, 90, 0, 30)
-	CopyButton.Position = UDim2.new(1, -95, 1, -35)
-	CopyButton.Text = "Copy"
-	CopyButton.TextColor3 = Color3.new(1, 1, 1)
-	CopyButton.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-	CopyButton.Font = Enum.Font.SourceSansBold
-	CopyButton.TextSize = 14
-
-	CopyButton.MouseButton1Click:Connect(function()
-		setclipboard(code)
+	local copyBtn = Instance.new("TextButton", holder)
+	copyBtn.Size = UDim2.new(0, 60, 0, 25)
+	copyBtn.Position = UDim2.new(1, -65, 1, -30)
+	copyBtn.Text = "Copy"
+	copyBtn.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
+	copyBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+	copyBtn.Font = Enum.Font.SourceSans
+	copyBtn.TextSize = 14
+	copyBtn.MouseButton1Click:Connect(function()
+		setclipboard(copyText)
 	end)
+
+	-- Resize canvas
+	task.wait()
+	ScrollingFrame.CanvasSize = UDim2.new(0, 0, 0, layout.AbsoluteContentSize.Y + 10)
 end
 
--- Hook Metamethods
-local mt = getrawmetatable(game)
-local oldNamecall = mt.__namecall
-setreadonly(mt, false)
-
-mt.__namecall = function(self, ...)
-	local method = getnamecallmethod()
-	local args = { ... }
-	if method == "FireServer" or method == "InvokeServer" then
-		local name = self:GetFullName()
-		local formattedArgs = {}
-		for i, v in ipairs(args) do
-			table.insert(formattedArgs, formatArgument(v))
-		end
-		createEntry(name, formattedArgs, method)
+-- Remote Spy Hook
+local function hookRemote(obj)
+	if obj:IsA("RemoteEvent") then
+		local old; old = hookfunction(obj.FireServer, function(self, ...)
+			local args = {...}
+			local data = HttpService:JSONEncode(args)
+			addEntry("RemoteEvent: "..self:GetFullName().."\nArgs: "..data, 'game:GetService("'..self.Parent.Name..'").'..self.Name..':FireServer('..data..')')
+			return old(self, ...)
+		end)
+	elseif obj:IsA("RemoteFunction") then
+		local old; old = hookfunction(obj.InvokeServer, function(self, ...)
+			local args = {...}
+			local data = HttpService:JSONEncode(args)
+			addEntry("RemoteFunction: "..self:GetFullName().."\nArgs: "..data, 'game:GetService("'..self.Parent.Name..'").'..self.Name..':InvokeServer('..data..')')
+			return old(self, ...)
+		end)
 	end
-	return oldNamecall(self, ...)
 end
 
-setreadonly(mt, true)
+-- Initial hook of existing Remotes
+for _, v in ipairs(game:GetDescendants()) do
+	if v:IsA("RemoteEvent") or v:IsA("RemoteFunction") then
+		hookRemote(v)
+	end
+end
 
--- Notification
-game.StarterGui:SetCore("SendNotification", {
-	Title = "Remote Spy",
-	Text = "Now listening to FireServer & InvokeServer...",
-	Duration = 5
-})
+-- Listen for new remotes
+game.DescendantAdded:Connect(function(obj)
+	if obj:IsA("RemoteEvent") or obj:IsA("RemoteFunction") then
+		hookRemote(obj)
+	end
+end)
+
+-- Click Detector Spy
+local function onClickDetected(part)
+	addEntry("Clicked part: "..part:GetFullName(), part:GetFullName())
+end
+
+for _, obj in pairs(workspace:GetDescendants()) do
+	if obj:IsA("ClickDetector") then
+		obj.MouseClick:Connect(function(plr)
+			if plr == LocalPlayer then
+				onClickDetected(obj.Parent)
+			end
+		end)
+	end
+end
+
+workspace.DescendantAdded:Connect(function(obj)
+	if obj:IsA("ClickDetector") then
+		obj.MouseClick:Connect(function(plr)
+			if plr == LocalPlayer then
+				onClickDetected(obj.Parent)
+			end
+		end)
+	end
+end)
+
+-- Screen touch and input spy
+UIS.InputBegan:Connect(function(input, gpe)
+	if not gpe then
+		addEntry("Input Detected: "..tostring(input.UserInputType), tostring(input.UserInputType))
+	end
+end)
