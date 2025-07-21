@@ -1,123 +1,120 @@
--- Remote Spy with UI (Medium size + Copy buttons)
--- Author: ChatGPT (Yexel's request)
-
+-- Optimized Remote Spy with UI and Copy Button
 local Players = game:GetService("Players")
-local LocalPlayer = Players.LocalPlayer
-local Mouse = LocalPlayer:GetMouse()
-local CoreGui = game:GetService("CoreGui")
-local HttpService = game:GetService("HttpService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local UIS = game:GetService("UserInputService")
+local player = Players.LocalPlayer
 
--- Clean old UI if any
-if CoreGui:FindFirstChild("RemoteSpyUI") then
-    CoreGui.RemoteSpyUI:Destroy()
+-- Create UI
+local ScreenGui = Instance.new("ScreenGui", player:WaitForChild("PlayerGui"))
+ScreenGui.Name = "SpyUI"
+ScreenGui.ResetOnSpawn = false
+
+local Main = Instance.new("Frame", ScreenGui)
+Main.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+Main.Size = UDim2.new(0, 500, 0, 300)
+Main.Position = UDim2.new(0.25, 0, 0.1, 0)
+Main.Name = "MainFrame"
+Main.Active = true
+Main.Draggable = true
+Main.BorderSizePixel = 0
+
+local UIList = Instance.new("UIListLayout")
+UIList.Parent = Main
+UIList.SortOrder = Enum.SortOrder.LayoutOrder
+UIList.Padding = UDim.new(0, 2)
+
+local function createLogBox(text)
+	local Box = Instance.new("Frame")
+	Box.Size = UDim2.new(1, -4, 0, 50)
+	Box.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+	Box.BorderSizePixel = 0
+
+	local Txt = Instance.new("TextLabel", Box)
+	Txt.Size = UDim2.new(0.8, 0, 1, 0)
+	Txt.Text = text
+	Txt.TextXAlignment = Enum.TextXAlignment.Left
+	Txt.TextColor3 = Color3.new(1,1,1)
+	Txt.Font = Enum.Font.SourceSans
+	Txt.TextSize = 14
+	Txt.BackgroundTransparency = 1
+
+	local Btn = Instance.new("TextButton", Box)
+	Btn.Size = UDim2.new(0.2, 0, 1, 0)
+	Btn.Position = UDim2.new(0.8, 0, 0, 0)
+	Btn.Text = "Copy"
+	Btn.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
+	Btn.TextColor3 = Color3.new(1,1,1)
+	Btn.Font = Enum.Font.SourceSans
+	Btn.TextSize = 14
+
+	Btn.MouseButton1Click:Connect(function()
+		setclipboard(text)
+	end)
+
+	return Box
 end
 
--- UI Setup
-local ScreenGui = Instance.new("ScreenGui", CoreGui)
-ScreenGui.Name = "RemoteSpyUI"
-
-local Frame = Instance.new("Frame", ScreenGui)
-Frame.Size = UDim2.new(0, 500, 0, 350)
-Frame.Position = UDim2.new(0.25, 0, 0.25, 0)
-Frame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
-Frame.BorderSizePixel = 0
-Frame.Active = true
-Frame.Draggable = true
-
-local Title = Instance.new("TextLabel", Frame)
-Title.Size = UDim2.new(1, 0, 0, 30)
-Title.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-Title.Text = "Remote Spy Logger"
-Title.TextColor3 = Color3.new(1, 1, 1)
-Title.Font = Enum.Font.SourceSansBold
-Title.TextSize = 20
-Title.BorderSizePixel = 0
-
-local ScrollingFrame = Instance.new("ScrollingFrame", Frame)
-ScrollingFrame.Size = UDim2.new(1, -10, 1, -40)
-ScrollingFrame.Position = UDim2.new(0, 5, 0, 35)
-ScrollingFrame.CanvasSize = UDim2.new(0, 0, 5, 0)
-ScrollingFrame.ScrollBarThickness = 6
-ScrollingFrame.BackgroundTransparency = 0.1
-ScrollingFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
-
-local UIListLayout = Instance.new("UIListLayout", ScrollingFrame)
-UIListLayout.Padding = UDim.new(0, 5)
-UIListLayout.SortOrder = Enum.SortOrder.LayoutOrder
-
--- Utility Function
-local function logRemote(actionType, remote, ...)
-    local args = {...}
-    local argText = ""
-    for i, v in pairs(args) do
-        local success, result = pcall(function()
-            return HttpService:JSONEncode(v)
-        end)
-        argText = argText .. "["..i.."] " .. (success and result or tostring(v)) .. "\n"
-    end
-
-    local entry = Instance.new("Frame")
-    entry.Size = UDim2.new(1, -10, 0, 120)
-    entry.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-    entry.Parent = ScrollingFrame
-    entry.BorderSizePixel = 0
-
-    local label = Instance.new("TextLabel", entry)
-    label.Size = UDim2.new(1, -10, 0, 90)
-    label.Position = UDim2.new(0, 5, 0, 0)
-    label.BackgroundTransparency = 1
-    label.TextXAlignment = Enum.TextXAlignment.Left
-    label.TextYAlignment = Enum.TextYAlignment.Top
-    label.TextWrapped = true
-    label.Font = Enum.Font.SourceSans
-    label.TextColor3 = Color3.new(1, 1, 1)
-    label.TextSize = 14
-    label.Text = string.format("[%s] %s\n%s", actionType, remote:GetFullName(), argText)
-
-    local copyButton = Instance.new("TextButton", entry)
-    copyButton.Size = UDim2.new(0, 100, 0, 25)
-    copyButton.Position = UDim2.new(1, -105, 1, -30)
-    copyButton.Text = "Copy"
-    copyButton.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-    copyButton.TextColor3 = Color3.new(1, 1, 1)
-    copyButton.Font = Enum.Font.SourceSansBold
-    copyButton.TextSize = 14
-    copyButton.MouseButton1Click:Connect(function()
-        setclipboard(label.Text)
-    end)
+local function logAction(action)
+	task.defer(function()
+		if #Main:GetChildren() > 20 then
+			for i = 1, 5 do
+				if Main:GetChildren()[i] and Main:GetChildren()[i]:IsA("Frame") then
+					Main:GetChildren()[i]:Destroy()
+				end
+			end
+		end
+		local Log = createLogBox(action)
+		Log.Parent = Main
+	end)
 end
 
--- Hook RemoteEvents and Functions
-local function hookRemotes()
-    local rawmt = getrawmetatable(game)
-    local namecall = rawmt.__namecall
-    setreadonly(rawmt, false)
-
-    rawmt.__namecall = newcclosure(function(self, ...)
-        local method = getnamecallmethod()
-        if method == "FireServer" or method == "InvokeServer" then
-            logRemote(method, self, ...)
-        end
-        return namecall(self, ...)
-    end)
+-- Catch remotes
+for _, v in ipairs(game:GetDescendants()) do
+	if v:IsA("RemoteEvent") or v:IsA("RemoteFunction") then
+		local name = v:GetFullName()
+		pcall(function()
+			if v:IsA("RemoteEvent") then
+				v.OnClientEvent:Connect(function(...)
+					local args = {...}
+					logAction("[RemoteEvent] "..name.." | Args: "..game:GetService("HttpService"):JSONEncode(args))
+				end)
+			elseif v:IsA("RemoteFunction") then
+				v.OnClientInvoke = function(...)
+					local args = {...}
+					logAction("[RemoteFunction] "..name.." | Invoked with: "..game:GetService("HttpService"):JSONEncode(args))
+				end
+			end
+		end)
+	end
 end
 
--- ClickDetector & Touch
-local function hookMouse()
-    Mouse.Button1Down:Connect(function()
-        local target = Mouse.Target
-        if target then
-            logRemote("Click", target)
-        end
-    end)
-
-    LocalPlayer.CharacterAdded:Connect(function(char)
-        char:WaitForChild("HumanoidRootPart").Touched:Connect(function(hit)
-            logRemote("Touch", hit)
-        end)
-    end)
+-- Detect ClickDetectors & Touch
+local function setupClickAndTouch()
+	for _, v in ipairs(workspace:GetDescendants()) do
+		if v:IsA("ClickDetector") then
+			v.MouseClick:Connect(function(p)
+				if p == player then
+					logAction("[ClickDetector] Clicked: "..v:GetFullName())
+				end
+			end)
+		elseif v:IsA("TouchTransmitter") and v.Parent then
+			v.Parent.Touched:Connect(function(hit)
+				if hit and hit:IsDescendantOf(player.Character) then
+					logAction("[Touch] "..v.Parent:GetFullName())
+				end
+			end)
+		end
+	end
 end
 
-hookRemotes()
-hookMouse()
-logRemote("Spy", workspace, "Spy started successfully.")
+setupClickAndTouch()
+
+-- Detect user input taps/clicks
+UIS.InputBegan:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+		logAction("[Input] "..tostring(input.UserInputType).." at "..tostring(input.Position))
+	end
+end)
+
+-- Done
+logAction("✅ Remote Spy Started")
